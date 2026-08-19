@@ -3,6 +3,7 @@ services:
     name: assetone
     runtime: docker
     plan: free
+    region: frankfurt
     dockerfilePath: ./Dockerfile
     envVars:
       - key: APP_NAME

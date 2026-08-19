@@ -11,6 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Render (and most PaaS hosts) terminate HTTPS at their edge proxy and
+        // forward requests to the container over plain HTTP. Without this,
+        // Laravel has no way to know the original request was secure, and
+        // generates http:// URLs (form actions, redirects) even on a site
+        // served entirely over https.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureUserHasRole::class,
             'active' => \App\Http\Middleware\EnsureAccountIsActive::class,

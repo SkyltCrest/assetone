@@ -10,11 +10,17 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 WORKDIR /app
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && cp -n .env.example .env
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 EXPOSE 8080
 
+# `php artisan serve` is a local-dev convenience command: when a .env file is
+# present it deliberately strips almost all environment variables before
+# spawning its child server process (see ServeCommand::startProcess), which
+# breaks env-var-only production containers like this one. Invoke the PHP
+# built-in server directly with Laravel's own router script instead, so the
+# full container environment (APP_KEY, DB_*, etc.) reaches the app.
 CMD php artisan migrate --force \
     && php artisan storage:link --force \
-    && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+    && cd public \
+    && exec php -S 0.0.0.0:${PORT:-8080} /app/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php

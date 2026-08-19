@@ -16,13 +16,15 @@ services:
       - key: APP_URL
         sync: false
       - key: SESSION_DRIVER
-        value: database
+        value: file
       - key: CACHE_STORE
-        value: database
+        value: file
       - key: QUEUE_CONNECTION
         value: database
       - key: DB_CONNECTION
         value: mysql
+      - key: DB_PERSISTENT
+        value: true
       - key: DB_HOST
         sync: false
       - key: DB_PORT

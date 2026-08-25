@@ -2,41 +2,39 @@
 
 namespace App\Services;
 
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
+use Throwable;
 
 class QrCodeService
 {
     /**
-     * Generate a QR code PNG for the given asset and store it on the public disk.
+     * Make a QR code SVG for an asset and save it to the public disk.
+     * Pure PHP (no GD/Imagick or system tools needed), so it works the same on Windows and Linux.
      *
-     * Uses the `qrencode` CLI tool rather than a Composer package, since this
-     * app avoids adding Packagist dependencies beyond the Laravel skeleton.
-     * Install it with: sudo apt-get install qrencode
-     *
-     * @return string|null Relative path (on the "public" disk) to the generated PNG, or null on failure.
+     * @return string|null Path to the SVG, or null on failure.
      */
     public function generateForAsset(string $assetCode, string $payload): ?string
     {
         Storage::disk('public')->makeDirectory('qrcodes');
 
-        $relativePath = "qrcodes/{$assetCode}.png";
+        $relativePath = "qrcodes/{$assetCode}.svg";
         $absolutePath = Storage::disk('public')->path($relativePath);
 
-        $process = new Process([
-            'qrencode',
-            '-o', $absolutePath,
-            '-s', '8',       // module size (pixel scale)
-            '-m', '2',       // margin
-            '-l', 'M',       // error correction level
-            $payload,
-        ]);
-
         try {
-            $process->mustRun();
-        } catch (ProcessFailedException $e) {
+            $result = (new Builder(
+                writer: new SvgWriter(),
+                data: $payload,
+                errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+                size: 300,
+                margin: 10,
+            ))->build();
+
+            $result->saveToFile($absolutePath);
+        } catch (Throwable $e) {
             Log::warning("QR code generation failed for asset {$assetCode}: ".$e->getMessage());
 
             return null;

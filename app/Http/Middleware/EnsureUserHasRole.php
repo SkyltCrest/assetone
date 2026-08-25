@@ -9,14 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureUserHasRole
 {
     /**
-     * Handle an incoming request.
-     *
-     * Usage in routes: ->middleware('role:administrator,asset_officer')
-     *
-     * Administrators always pass, regardless of which roles are listed —
-     * the administrator is a superuser and can do everything every other
-     * role can do, so a route restricted to any other role never needs to
-     * remember to also list 'administrator'.
+     * Only let users with one of the given roles through.
+     * Usage: ->middleware('role:administrator,asset_officer')
+     * Administrators always pass, since they're a superuser.
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {

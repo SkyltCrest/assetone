@@ -1,4 +1,4 @@
-{{-- Shared fields for Register / Edit Asset forms. Expects $asset, $categories, $departments, $custodians, $statuses --}}
+{{-- Shared asset form fields --}}
 
 <div class="card form-card p-4 mb-4">
     <h5 class="section-title mb-4"><i class="bi bi-info-circle me-2"></i>Basic Asset Information</h5>

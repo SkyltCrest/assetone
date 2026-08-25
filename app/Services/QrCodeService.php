@@ -10,13 +10,10 @@ use Symfony\Component\Process\Process;
 class QrCodeService
 {
     /**
-     * Generate a QR code PNG for the given asset and store it on the public disk.
+     * Make a QR code PNG for an asset and save it to the public disk.
+     * Needs the `qrencode` CLI tool installed (sudo apt-get install qrencode).
      *
-     * Uses the `qrencode` CLI tool rather than a Composer package, since this
-     * app avoids adding Packagist dependencies beyond the Laravel skeleton.
-     * Install it with: sudo apt-get install qrencode
-     *
-     * @return string|null Relative path (on the "public" disk) to the generated PNG, or null on failure.
+     * @return string|null Path to the PNG, or null on failure.
      */
     public function generateForAsset(string $assetCode, string $payload): ?string
     {
@@ -28,9 +25,9 @@ class QrCodeService
         $process = new Process([
             'qrencode',
             '-o', $absolutePath,
-            '-s', '8',       // module size (pixel scale)
+            '-s', '8',       // pixel scale
             '-m', '2',       // margin
-            '-l', 'M',       // error correction level
+            '-l', 'M',       // error correction
             $payload,
         ]);
 

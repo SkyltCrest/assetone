@@ -50,7 +50,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Assets this user is currently the custodian (Person in Charge) of.
+     * Assets this user currently holds as custodian.
      */
     public function assets(): HasMany
     {
@@ -58,7 +58,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Full assignment history for this user as a custodian.
+     * This user's full assignment history.
      */
     public function assignments(): HasMany
     {
@@ -76,7 +76,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Roles that are allowed to manage assets (create/edit/delete records).
+     * Can this user manage assets?
      */
     public function canManageAssets(): bool
     {
@@ -84,7 +84,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Roles that are allowed to manage user accounts.
+     * Can this user manage accounts?
      */
     public function canManageUsers(): bool
     {

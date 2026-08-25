@@ -68,7 +68,7 @@ class Asset extends Model
     }
 
     /**
-     * Scope: simple keyword search across code/name, used by Search & Filter and Report pages.
+     * Search by asset code or name.
      */
     public function scopeSearch($query, ?string $term)
     {

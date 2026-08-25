@@ -11,7 +11,7 @@ use Illuminate\View\View;
 class PasswordResetLinkController extends Controller
 {
     /**
-     * Display the forgot password view.
+     * Show the forgot password page.
      */
     public function create(): View
     {
@@ -19,11 +19,10 @@ class PasswordResetLinkController extends Controller
     }
 
     /**
-     * Handle an incoming password reset link request.
+     * Send a password reset link.
      *
-     * Note: with MAIL_MAILER=log (the default for local dev), the reset link
-     * is written to storage/logs/laravel.log instead of actually emailing out.
-     * Switch MAIL_MAILER to smtp and configure real credentials to send it for real.
+     * Note: locally (MAIL_MAILER=log), the link goes to storage/logs/laravel.log
+     * instead of a real email. Set MAIL_MAILER=smtp to send for real.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -31,8 +30,7 @@ class PasswordResetLinkController extends Controller
 
         Password::sendResetLink($request->only('email'));
 
-        // Always show the same generic message, whether or not the email exists,
-        // so the form can't be used to enumerate registered accounts.
+        // Same message either way, so this can't be used to check which emails are registered.
         return back()->with('status', 'If an account exists for that email, a password reset link has been sent.');
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Show the login page.
      */
     public function create(): View
     {
@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Log the user in.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -52,7 +52,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * Log the user out.
      */
     public function destroy(Request $request): RedirectResponse
     {

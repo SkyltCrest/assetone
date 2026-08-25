@@ -18,7 +18,7 @@ class AssetController extends Controller
     public function __construct(private readonly QrCodeService $qrCodeService) {}
 
     /**
-     * Search & Filter — browse all registered assets.
+     * List and filter assets.
      */
     public function index(Request $request): View
     {
@@ -53,7 +53,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Asset Registration form.
+     * Show the new asset form.
      */
     public function create(): View
     {
@@ -119,7 +119,7 @@ class AssetController extends Controller
     }
 
     /**
-     * Serve the generated QR code image for download/printing.
+     * Serve the asset's QR code image.
      */
     public function qr(Asset $asset)
     {

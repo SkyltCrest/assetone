@@ -2,38 +2,39 @@
 
 namespace App\Services;
 
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Symfony\Component\Process\Exception\ProcessFailedException;
-use Symfony\Component\Process\Process;
+use Throwable;
 
 class QrCodeService
 {
     /**
-     * Make a QR code PNG for an asset and save it to the public disk.
-     * Needs the `qrencode` CLI tool installed (sudo apt-get install qrencode).
+     * Make a QR code SVG for an asset and save it to the public disk.
+     * Pure PHP (no GD/Imagick or system tools needed), so it works the same on Windows and Linux.
      *
-     * @return string|null Path to the PNG, or null on failure.
+     * @return string|null Path to the SVG, or null on failure.
      */
     public function generateForAsset(string $assetCode, string $payload): ?string
     {
         Storage::disk('public')->makeDirectory('qrcodes');
 
-        $relativePath = "qrcodes/{$assetCode}.png";
+        $relativePath = "qrcodes/{$assetCode}.svg";
         $absolutePath = Storage::disk('public')->path($relativePath);
 
-        $process = new Process([
-            'qrencode',
-            '-o', $absolutePath,
-            '-s', '8',       // pixel scale
-            '-m', '2',       // margin
-            '-l', 'M',       // error correction
-            $payload,
-        ]);
-
         try {
-            $process->mustRun();
-        } catch (ProcessFailedException $e) {
+            $result = (new Builder(
+                writer: new SvgWriter(),
+                data: $payload,
+                errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+                size: 300,
+                margin: 10,
+            ))->build();
+
+            $result->saveToFile($absolutePath);
+        } catch (Throwable $e) {
             Log::warning("QR code generation failed for asset {$assetCode}: ".$e->getMessage());
 
             return null;

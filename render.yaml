@@ -17,9 +17,9 @@ services:
       - key: APP_URL
         sync: false
       - key: SESSION_DRIVER
-        value: file
+        value: database
       - key: CACHE_STORE
-        value: file
+        value: database
       - key: QUEUE_CONNECTION
         value: database
       - key: DB_CONNECTION

@@ -104,13 +104,8 @@
         <div class="content-card">
             <h5 class="mb-3">QR Code</h5>
             <div class="qr-box">
-                @if($asset->qr_code_path)
-                    <img src="{{ route('assets.qr', $asset) }}" alt="QR code for {{ $asset->asset_code }}" class="img-fluid mb-3" style="max-width:200px;">
-                    <div><a href="{{ route('assets.qr', $asset) }}" download class="btn btn-outline-primary btn-sm no-print"><i class="bi bi-download me-1"></i> Download</a></div>
-                @else
-                    <i class="bi bi-qr-code" style="font-size:3rem; color:var(--muted);"></i>
-                    <p class="text-muted mb-0 mt-2">QR code not generated for this asset yet.</p>
-                @endif
+                <img src="{{ route('assets.qr', $asset) }}" alt="QR code for {{ $asset->asset_code }}" class="img-fluid mb-3" style="max-width:200px;">
+                <div><a href="{{ route('assets.qr', $asset) }}" download class="btn btn-outline-primary btn-sm no-print"><i class="bi bi-download me-1"></i> Download</a></div>
             </div>
         </div>
     </div>

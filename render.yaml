@@ -47,18 +47,13 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
+      # Render's free plan blocks outbound SMTP (ports 25/465/587), so mail goes
+      # out over Resend's HTTPS API instead. Set RESEND_KEY in the dashboard, and
+      # MAIL_FROM_ADDRESS must be on a domain verified in the Resend account.
       - key: MAIL_MAILER
-        value: smtp
-      - key: MAIL_HOST
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: 587
-      - key: MAIL_USERNAME
+        value: resend
+      - key: RESEND_KEY
         sync: false
-      - key: MAIL_PASSWORD
-        sync: false
-      - key: MAIL_ENCRYPTION
-        value: tls
       - key: MAIL_FROM_ADDRESS
         sync: false
       - key: MAIL_FROM_NAME

@@ -84,7 +84,7 @@ class AssetAssignmentController extends Controller
     }
 
     /**
-     * Keep Asset.custodian_id consistent with its most recent assignment record.
+     * Sync the asset's custodian with this assignment.
      */
     private function syncAssetCustodian(AssetAssignment $assignment): void
     {

@@ -9,9 +9,7 @@ use Endroid\QrCode\Writer\SvgWriter;
 class QrCodeService
 {
     /**
-     * Render a QR code SVG for the given payload.
-     * Generated on the fly (not stored to disk) so it survives container
-     * restarts/redeploys on hosts with ephemeral storage, like Render.
+     * Render a QR code SVG for the given payload, generated on the fly.
      */
     public function svgFor(string $payload): string
     {

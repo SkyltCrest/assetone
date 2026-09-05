@@ -15,13 +15,11 @@ use Illuminate\Support\Facades\Hash;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database with demo data matching the approved
-     * AssetOne mockups, so the app looks and behaves like the design from
-     * the first login. All seeded users share the password "password".
+     * Seed demo data. All seeded users share the password "password".
      */
     public function run(): void
     {
-        // ===== Users (one per role, matching AssetOne_AssetUserManagement mockup) =====
+        // Users (one per role)
         $admin = User::updateOrCreate(['email' => 'admin@mdpt.gov.my'], [
             'name' => 'System Administrator',
             'username' => 'admin',
@@ -62,7 +60,7 @@ class DatabaseSeeder extends Seeder
             'status' => 'inactive',
         ]);
 
-        // ===== Asset Categories (matching AssetOne_AssetCategoryManagement mockup) =====
+        // Asset categories
         $categories = [
             'CAT-001' => AssetCategory::updateOrCreate(['code' => 'CAT-001'], ['name' => 'Computer & IT Equipment', 'description' => 'Computers and IT-related equipment', 'status' => 'active']),
             'CAT-002' => AssetCategory::updateOrCreate(['code' => 'CAT-002'], ['name' => 'Office Equipment', 'description' => 'Equipment used for office operations', 'status' => 'active']),
@@ -70,7 +68,7 @@ class DatabaseSeeder extends Seeder
             'CAT-004' => AssetCategory::updateOrCreate(['code' => 'CAT-004'], ['name' => 'Vehicle', 'description' => 'Official vehicles owned by MDPT', 'status' => 'active']),
         ];
 
-        // ===== Asset Locations (matching AssetOne_AssetLocationManagement mockup) =====
+        // Asset locations
         $locations = [
             'LOC-001' => AssetLocation::updateOrCreate(['code' => 'LOC-001'], ['name' => 'IT Department', 'department' => 'Information Technology', 'description' => 'Main IT department office', 'status' => 'active']),
             'LOC-002' => AssetLocation::updateOrCreate(['code' => 'LOC-002'], ['name' => 'Finance Department', 'department' => 'Finance', 'description' => 'Finance department office', 'status' => 'active']),
@@ -78,7 +76,7 @@ class DatabaseSeeder extends Seeder
             'LOC-004' => AssetLocation::updateOrCreate(['code' => 'LOC-004'], ['name' => 'Meeting Room', 'department' => 'Management', 'description' => 'Level 3 main meeting room', 'status' => 'active']),
         ];
 
-        // ===== Asset Statuses (matching AssetOne_AssetStatus mockup) =====
+        // Asset statuses
         $statuses = [
             'Active' => AssetStatus::updateOrCreate(['code' => 'STAT-001'], ['name' => 'Active', 'description' => 'Asset is currently available and in use.', 'badge_color' => 'success', 'status' => 'active']),
             'Under Maintenance' => AssetStatus::updateOrCreate(['code' => 'STAT-002'], ['name' => 'Under Maintenance', 'description' => 'Asset is currently being repaired or maintained.', 'badge_color' => 'warning', 'status' => 'active']),
@@ -87,7 +85,7 @@ class DatabaseSeeder extends Seeder
             'Lost' => AssetStatus::updateOrCreate(['code' => 'STAT-005'], ['name' => 'Lost', 'description' => 'Asset has been reported as lost.', 'badge_color' => 'dark', 'status' => 'active']),
         ];
 
-        // ===== Assets (matching AssetOne_AssetSearch / Dashboard mockups) =====
+        // Assets
         $assetData = [
             ['code' => 'AST-001', 'name' => 'Dell Latitude 5420', 'category' => 'CAT-001', 'location' => 'LOC-001', 'department' => 'Information Technology', 'detail' => 'Level 2, IT Department', 'status' => 'Active', 'custodian' => $ahmad, 'price' => 3800.00, 'supplier' => 'Dell Malaysia'],
             ['code' => 'AST-002', 'name' => 'HP LaserJet Pro', 'category' => 'CAT-002', 'location' => 'LOC-002', 'department' => 'Finance', 'detail' => 'Level 1, Finance Department', 'status' => 'Under Maintenance', 'custodian' => $siti, 'price' => 1200.00, 'supplier' => 'HP Malaysia'],
@@ -115,7 +113,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ===== Assignment history (matching AssetOne_AssetCustodian mockup) =====
+        // Assignment history
         $assignmentData = [
             ['asset' => 'AST-001', 'custodian' => $ahmad, 'department' => 'Information Technology', 'date' => '2026-07-20', 'status' => 'assigned'],
             ['asset' => 'AST-002', 'custodian' => $siti, 'department' => 'Finance', 'date' => '2026-07-18', 'status' => 'assigned'],
@@ -134,7 +132,7 @@ class DatabaseSeeder extends Seeder
             ]);
         }
 
-        // ===== Maintenance history (matching AssetOne_AssetMaintenance / Dashboard mockups) =====
+        // Maintenance history
         $maintenanceData = [
             ['code' => 'MNT-001', 'asset' => 'AST-002', 'type' => 'repair', 'date' => '2026-07-20', 'provider' => 'HP Service Center', 'cost' => 250.00, 'status' => 'in_progress', 'desc' => 'Paper jam and toner replacement.'],
             ['code' => 'MNT-002', 'asset' => 'AST-004', 'type' => 'service', 'date' => '2026-07-18', 'provider' => 'Dell Service Center', 'cost' => 180.00, 'status' => 'completed', 'desc' => 'Preventive maintenance and diagnostics.'],

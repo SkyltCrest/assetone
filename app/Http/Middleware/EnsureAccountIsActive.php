@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureAccountIsActive
 {
     /**
-     * Log out and reject any user whose account has been deactivated by an administrator.
+     * Log out any user whose account has been deactivated.
      */
     public function handle(Request $request, Closure $next): Response
     {

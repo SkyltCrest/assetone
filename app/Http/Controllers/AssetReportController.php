@@ -47,16 +47,6 @@ class AssetReportController extends Controller
         return view('reports.index', $this->viewData($request, $assets, $filters));
     }
 
-    public function print(Request $request): View
-    {
-        [$assets, $filters] = $this->query($request);
-
-        return view('reports.print', $this->viewData($request, $assets, $filters) + [
-            'generatedAt' => now(),
-            'generatedBy' => $request->user(),
-        ]);
-    }
-
     public function export(Request $request): StreamedResponse
     {
         [$assets] = $this->query($request);
@@ -78,7 +68,7 @@ class AssetReportController extends Controller
 
     /**
      * Build the filtered asset collection and a human-readable description of
-     * every filter that was applied (used as the printout's header).
+     * every filter that was applied (shown above the report and on the print-out).
      *
      * @return array{0: Collection<int, Asset>, 1: array<string, string>}
      */

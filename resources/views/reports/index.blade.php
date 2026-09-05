@@ -13,13 +13,16 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
     <div>
         <h3 class="fw-bold mb-1">Asset Report</h3>
-        <p class="text-muted mb-0">Filter the asset register, choose your columns, then print or export.</p>
+        <p class="text-muted mb-0 no-print">Filter the asset register, choose your columns, then print or export.</p>
+        <p class="text-muted small mb-0 d-none d-print-block">
+            Generated {{ now()->format('d M Y, H:i') }}@if(auth()->check()) by {{ auth()->user()->name }}@endif
+        </p>
     </div>
     <div class="d-flex gap-2 no-print">
         <button type="submit" form="reportFilters" formaction="{{ route('reports.export') }}" class="btn btn-outline-primary">
             <i class="bi bi-filetype-csv me-2"></i>Export CSV
         </button>
-        <button type="submit" form="reportFilters" formaction="{{ route('reports.print') }}" formtarget="_blank" class="btn btn-primary">
+        <button type="button" class="btn btn-primary" onclick="window.print()">
             <i class="bi bi-printer me-2"></i>Print Report
         </button>
     </div>

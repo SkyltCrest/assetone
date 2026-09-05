@@ -1,6 +1,5 @@
 @php
     /** @var \App\Models\Asset $asset */
-    $plain = $plain ?? false;
 @endphp
 @switch($column)
     @case('asset_code')
@@ -22,11 +21,7 @@
         {{ $asset->custodian->name ?? 'Unassigned' }}
         @break
     @case('status')
-        @if($plain)
-            {{ $asset->assetStatus->name ?? 'Unknown' }}
-        @else
-            <span class="badge bg-{{ $asset->assetStatus->badge_color ?? 'secondary' }}">{{ $asset->assetStatus->name ?? 'Unknown' }}</span>
-        @endif
+        <span class="badge bg-{{ $asset->assetStatus->badge_color ?? 'secondary' }}">{{ $asset->assetStatus->name ?? 'Unknown' }}</span>
         @break
     @case('purchase_date')
         {{ optional($asset->purchase_date)->format('d M Y') ?? '—' }}

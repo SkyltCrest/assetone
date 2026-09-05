@@ -24,7 +24,7 @@ class PasswordResetLinkController extends Controller
      * Send a password reset link.
      *
      * Note: locally (MAIL_MAILER=log), the link goes to storage/logs/laravel.log
-     * instead of a real email. Production sends via the Resend API.
+     * instead of a real email. Production sends over SMTP (Brevo relay).
      */
     public function store(Request $request): RedirectResponse
     {
@@ -33,7 +33,7 @@ class PasswordResetLinkController extends Controller
         try {
             Password::sendResetLink($request->only('email'));
         } catch (Throwable $e) {
-            // A mail-transport failure (bad API key, provider outage) would
+            // A mail-transport failure (bad credentials, provider outage) would
             // otherwise surface as a raw 500. Log it and show the same neutral
             // message so the page still behaves.
             Log::error('Password reset link could not be sent: '.$e->getMessage());

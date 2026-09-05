@@ -17,22 +17,28 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-sm-4">
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
             <p class="text-muted small text-uppercase fw-medium mb-1">Total</p>
             <h3 class="fw-bold mb-0">{{ number_format($totalCount) }}</h3>
         </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card">
+            <p class="text-muted small text-uppercase fw-medium mb-1">Pending Verification</p>
+            <h3 class="fw-bold mb-0 text-warning">{{ number_format($pendingCount) }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
             <p class="text-muted small text-uppercase fw-medium mb-1">Assigned</p>
             <h3 class="fw-bold mb-0 text-success">{{ number_format($assignedCount) }}</h3>
         </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-6 col-lg-3">
         <div class="stat-card">
-            <p class="text-muted small text-uppercase fw-medium mb-1">Returned</p>
-            <h3 class="fw-bold mb-0 text-secondary">{{ number_format($returnedCount) }}</h3>
+            <p class="text-muted small text-uppercase fw-medium mb-1">Rejected</p>
+            <h3 class="fw-bold mb-0 text-danger">{{ number_format($rejectedCount) }}</h3>
         </div>
     </div>
 </div>
@@ -50,7 +56,9 @@
             <label class="form-label fw-semibold">Status</label>
             <select name="status" class="form-select" onchange="this.form.submit()">
                 <option value="">All Status</option>
+                <option value="pending_verification" @selected($status === 'pending_verification')>Pending Verification</option>
                 <option value="assigned" @selected($status === 'assigned')>Assigned</option>
+                <option value="rejected" @selected($status === 'rejected')>Rejected</option>
                 <option value="unassigned" @selected($status === 'unassigned')>Returned</option>
             </select>
         </div>
@@ -80,7 +88,12 @@
                         <td>{{ $assignment->custodian->name ?? '—' }}</td>
                         <td>{{ $assignment->department }}</td>
                         <td>{{ $assignment->assigned_date->format('d M Y') }}</td>
-                        <td><span class="badge bg-{{ $assignment->status === 'assigned' ? 'success' : 'secondary' }}">{{ $assignment->status === 'assigned' ? 'Assigned' : 'Returned' }}</span></td>
+                        <td>
+                            <span class="badge bg-{{ $assignment->statusColor() }}">{{ $assignment->statusLabel() }}</span>
+                            @if($assignment->status === 'rejected' && $assignment->rejection_reason)
+                                <i class="bi bi-info-circle text-muted ms-1" title="{{ $assignment->rejection_reason }}"></i>
+                            @endif
+                        </td>
                         <td class="text-end">
                             <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editAssignmentModal{{ $assignment->id }}" title="Edit"><i class="bi bi-pencil"></i></button>
                             <form method="POST" action="{{ route('assignments.destroy', $assignment) }}" class="d-inline" onsubmit="return confirm('Delete this assignment?');">
@@ -125,10 +138,18 @@
                                         <div class="mb-3">
                                             <label class="form-label fw-medium">Status</label>
                                             <select name="status" class="form-select">
+                                                <option value="pending_verification" @selected($assignment->status === 'pending_verification')>Pending Verification</option>
                                                 <option value="assigned" @selected($assignment->status === 'assigned')>Assigned</option>
+                                                <option value="rejected" @selected($assignment->status === 'rejected')>Rejected</option>
                                                 <option value="unassigned" @selected($assignment->status === 'unassigned')>Returned</option>
                                             </select>
+                                            <small class="text-muted">Set to <em>Pending Verification</em> to send it back to {{ $assignment->custodian->name ?? 'the staff member' }} for re-checking.</small>
                                         </div>
+                                        @if($assignment->status === 'rejected' && $assignment->rejection_reason)
+                                            <div class="alert alert-warning py-2 px-3 small mb-3">
+                                                <strong>Rejection reason:</strong> {{ $assignment->rejection_reason }}
+                                            </div>
+                                        @endif
                                         <div class="mb-3">
                                             <label class="form-label fw-medium">Notes</label>
                                             <textarea name="notes" class="form-control" rows="3">{{ $assignment->notes }}</textarea>
@@ -194,15 +215,11 @@
                         <input type="date" name="assigned_date" value="{{ now()->format('Y-m-d') }}" class="form-control" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-medium">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="assigned">Assigned</option>
-                            <option value="unassigned">Returned</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label fw-medium">Notes</label>
                         <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="alert alert-info py-2 px-3 small mb-0">
+                        <i class="bi bi-info-circle me-1"></i>The assignment will be marked <strong>Pending Verification</strong> and the staff member will be notified to accept or reject it.
                     </div>
                 </div>
                 <div class="modal-footer">

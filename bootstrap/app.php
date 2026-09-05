@@ -3,6 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -28,5 +30,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // A stale browser tab (left open too long, or one of several tabs opened
+        // before the session cookie was set) carries an outdated CSRF token and
+        // would otherwise hit the raw "419 Page Expired" screen. Send the user
+        // back to the form they came from with their input preserved and a plain
+        // explanation instead.
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Your session expired. Please reload and try again.'], 419);
+            }
+
+            return redirect()
+                ->back()
+                ->withInput($request->except('password', 'password_confirmation', '_token'))
+                ->with('error', 'Your session expired. Please try again.');
+        });
     })->create();

@@ -89,6 +89,8 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Asset reports (any logged-in user)
     Route::get('reports', [AssetReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/print', [AssetReportController::class, 'print'])->name('reports.print');
+    Route::get('reports/export', [AssetReportController::class, 'export'])->name('reports.export');
 
     // Account settings (any logged-in user)
     Route::get('settings', [AccountSettingsController::class, 'index'])->name('settings.index');

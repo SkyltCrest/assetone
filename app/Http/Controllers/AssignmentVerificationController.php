@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AssetAssignment;
 use App\Notifications\AssignmentAccepted;
 use App\Notifications\AssignmentRejected;
+use App\Observers\ActivityObserver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,9 @@ class AssignmentVerificationController extends Controller
                 'rejection_reason' => null,
             ]);
 
-            $assignment->asset->update(['custodian_id' => $assignment->custodian_id]);
+            ActivityObserver::silently(fn () => $assignment->asset->update([
+                'custodian_id' => $assignment->custodian_id,
+            ]));
         });
 
         $assignment->assignedBy?->notify(new AssignmentAccepted($assignment->load('asset', 'custodian')));

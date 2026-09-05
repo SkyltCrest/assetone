@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\User;
 use App\Notifications\AssignmentAwaitingVerification;
+use App\Observers\ActivityObserver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -111,16 +112,20 @@ class AssetAssignmentController extends Controller
      */
     private function syncAssetCustodian(AssetAssignment $assignment): void
     {
-        $asset = $assignment->asset;
+        // The assignment record itself is the reported activity; keeping the
+        // asset's custodian in step is an internal side effect.
+        ActivityObserver::silently(function () use ($assignment) {
+            $asset = $assignment->asset;
 
-        if ($assignment->status === AssetAssignment::STATUS_ASSIGNED) {
-            $asset->update(['custodian_id' => $assignment->custodian_id]);
+            if ($assignment->status === AssetAssignment::STATUS_ASSIGNED) {
+                $asset->update(['custodian_id' => $assignment->custodian_id]);
 
-            return;
-        }
+                return;
+            }
 
-        if ($asset->custodian_id === $assignment->custodian_id) {
-            $asset->update(['custodian_id' => null]);
-        }
+            if ($asset->custodian_id === $assignment->custodian_id) {
+                $asset->update(['custodian_id' => null]);
+            }
+        });
     }
 }

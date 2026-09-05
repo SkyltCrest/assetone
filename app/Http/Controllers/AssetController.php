@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\QrCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class AssetController extends Controller
@@ -73,15 +72,6 @@ class AssetController extends Controller
 
         $asset = Asset::create($data);
 
-        $qrPath = $this->qrCodeService->generateForAsset(
-            $asset->asset_code,
-            route('assets.show', $asset)
-        );
-
-        if ($qrPath) {
-            $asset->update(['qr_code_path' => $qrPath]);
-        }
-
         return redirect()->route('assets.show', $asset)->with('status', "Asset \"{$asset->name}\" registered successfully.");
     }
 
@@ -105,7 +95,6 @@ class AssetController extends Controller
 
     public function destroy(Asset $asset): RedirectResponse
     {
-        $this->qrCodeService->delete($asset->qr_code_path);
         $asset->delete();
 
         return back()->with('status', 'Asset has been deleted.');
@@ -119,13 +108,15 @@ class AssetController extends Controller
     }
 
     /**
-     * Serve the asset's QR code image.
+     * Serve the asset's QR code image, generated on the fly.
      */
     public function qr(Asset $asset)
     {
-        abort_unless($asset->qr_code_path && Storage::disk('public')->exists($asset->qr_code_path), 404);
+        $svg = $this->qrCodeService->svgFor(route('assets.show', $asset));
 
-        return Storage::disk('public')->response($asset->qr_code_path);
+        return response($svg)
+            ->header('Content-Type', 'image/svg+xml')
+            ->header('Content-Disposition', "inline; filename=\"{$asset->asset_code}.svg\"");
     }
 
     private function validated(Request $request): array

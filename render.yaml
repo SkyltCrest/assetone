@@ -18,6 +18,17 @@ services:
         sync: false
       - key: SESSION_DRIVER
         value: database
+      # Render serves the app over HTTPS only; scope the session cookie to
+      # secure connections and keep it first-party (lax) so it survives normal
+      # top-level navigation on mobile.
+      - key: SESSION_SECURE_COOKIE
+        value: true
+      - key: SESSION_SAME_SITE
+        value: lax
+      # Longer idle window so a tab left open on a phone does not silently
+      # expire its CSRF token (was the Laravel default of 120 minutes).
+      - key: SESSION_LIFETIME
+        value: 480
       - key: CACHE_STORE
         value: database
       - key: QUEUE_CONNECTION

@@ -1,9 +1,8 @@
-FROM php:8.2-cli
+FROM dunglas/frankenphp:1-php8.2
 
-RUN apt-get update && apt-get install -y \
-        git unzip libzip-dev \
-    && docker-php-ext-install pdo_mysql zip \
-    && rm -rf /var/lib/apt/lists/*
+# Laravel needs pdo_mysql; zip lets Composer unpack faster. Most other common
+# extensions already ship in the FrankenPHP image.
+RUN install-php-extensions pdo_mysql zip
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -14,13 +13,15 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 EXPOSE 8080
 
-# `php artisan serve` is a local-dev convenience command: when a .env file is
-# present it deliberately strips almost all environment variables before
-# spawning its child server process (see ServeCommand::startProcess), which
-# breaks env-var-only production containers like this one. Invoke the PHP
-# built-in server directly with Laravel's own router script instead, so the
-# full container environment (APP_KEY, DB_*, etc.) reaches the app.
+# FrankenPHP serves ./public over a real, multi-threaded HTTP server, so
+# concurrent requests - e.g. a phone opening several tabs at once - are handled
+# in parallel. The previous `php -S` server was single-process: overlapping
+# first-visit requests each minted their own session and CSRF token, the browser
+# kept only the last cookie, and the orphaned tabs then failed CSRF with
+# "419 Page Expired".
+#
+# frankenphp is invoked directly (not `php artisan serve`, which strips the
+# environment when a .env file is present) so APP_KEY, DB_*, etc. reach the app.
 CMD php artisan migrate --force \
     && php artisan storage:link --force \
-    && cd public \
-    && exec php -S 0.0.0.0:${PORT:-8080} /app/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php
+    && exec frankenphp php-server --root public/ --listen "0.0.0.0:${PORT:-8080}"

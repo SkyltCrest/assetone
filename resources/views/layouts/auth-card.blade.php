@@ -133,6 +133,10 @@
 
             <div class="col-md-7 auth-section">
 
+                @if (session('error'))
+                    <div class="alert alert-warning py-2 small">{{ session('error') }}</div>
+                @endif
+
                 @yield('content')
 
                 <div class="auth-footer">

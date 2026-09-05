@@ -4,6 +4,13 @@ FROM dunglas/frankenphp:1-php8.2
 # extensions already ship in the FrankenPHP image.
 RUN install-php-extensions pdo_mysql zip
 
+# The image ships the frankenphp binary with a cap_net_bind_service file
+# capability (for binding :80/:443). Render runs containers with privilege
+# escalation disabled, which makes exec of a file that carries capabilities
+# fail with "Operation not permitted". We bind an unprivileged port (8080),
+# so drop the capability entirely.
+RUN setcap -r /usr/local/bin/frankenphp || true
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app

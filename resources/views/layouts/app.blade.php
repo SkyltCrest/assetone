@@ -126,6 +126,26 @@
     .page-item.active .page-link{ background:var(--blue); border-color:var(--blue); }
     .page-link:hover{ color:var(--navy); }
 
+    .notif-dropdown{ width:360px; max-width:92vw; padding:0; border:none; border-radius:14px;
+        box-shadow:0 20px 50px rgba(16,24,40,0.18); overflow:hidden; }
+    .notif-dropdown .notif-head{ padding:14px 16px; border-bottom:1px solid #F0F2F6; display:flex;
+        justify-content:space-between; align-items:center; }
+    .notif-dropdown .notif-head strong{ font-size:0.95rem; }
+    .notif-list{ max-height:380px; overflow-y:auto; }
+    .notif-item{ display:block; padding:12px 16px; border-bottom:1px solid #F3F5F9; color:var(--text);
+        font-size:0.85rem; line-height:1.4; white-space:normal; }
+    .notif-item:hover{ background:#F7F9FC; color:var(--text); }
+    .notif-item.unread{ background:#F4F8FF; }
+    .notif-item .notif-title{ font-weight:700; display:block; margin-bottom:2px; }
+    .notif-item .notif-time{ color:var(--muted); font-size:0.75rem; }
+    .notif-empty{ padding:26px 16px; text-align:center; color:var(--muted); font-size:0.85rem; }
+    .notif-foot{ padding:10px 16px; text-align:center; border-top:1px solid #F0F2F6; }
+    .icon-btn .count-badge{ position:absolute; top:2px; right:2px; min-width:17px; height:17px; padding:0 4px;
+        border-radius:9px; background:var(--danger); color:#fff; font-size:0.66rem; font-weight:700;
+        display:flex; align-items:center; justify-content:center; border:1.5px solid #fff; }
+    .nav-link .nav-count{ margin-left:auto; background:var(--teal); color:#fff; font-size:0.68rem; font-weight:700;
+        border-radius:9px; padding:1px 7px; }
+
     @media print { .sidebar, .topbar, .no-print { display: none !important; }
         .main-content { margin-left: 0 !important; padding: 10px !important; }
         .stat-card, .content-card { box-shadow: none !important; border: 1px solid #ddd !important; }
@@ -148,7 +168,15 @@
 </head>
 <body>
 
-@php $user = auth()->user(); @endphp
+@php
+    $user = auth()->user();
+    $unreadNotifications = $user ? $user->unreadNotifications()->latest()->take(8)->get() : collect();
+    $unreadNotificationCount = $user ? $user->unreadNotifications()->count() : 0;
+    $myPendingCount = $user
+        ? \App\Models\AssetAssignment::where('custodian_id', $user->id)
+            ->where('status', \App\Models\AssetAssignment::STATUS_PENDING)->count()
+        : 0;
+@endphp
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
@@ -173,6 +201,7 @@
         <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ request()->routeIs('assignments.*') ? 'active' : '' }}"><i class="bi bi-person-check"></i> Assignment</a></li>
         <li class="nav-item"><a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"><i class="bi bi-tools"></i> Maintenance</a></li>
         @endif
+        <li class="nav-item"><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> My Assignments @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
         <li class="nav-item"><a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.index') ? 'active' : '' }}"><i class="bi bi-search"></i> Search &amp; Filter</a></li>
         <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph"></i> Asset Report</a></li>
 
@@ -204,7 +233,42 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-3 flex-wrap">
-            <div class="icon-btn"><i class="bi bi-bell"></i><span class="dot"></span></div>
+            <div class="dropdown">
+                <button type="button" class="icon-btn border-0" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" title="Notifications">
+                    <i class="bi bi-bell"></i>
+                    @if($unreadNotificationCount > 0)
+                        <span class="count-badge">{{ $unreadNotificationCount > 9 ? '9+' : $unreadNotificationCount }}</span>
+                    @endif
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-dropdown">
+                    <div class="notif-head">
+                        <strong>Notifications</strong>
+                        @if($unreadNotificationCount > 0)
+                            <form method="POST" action="{{ route('notifications.readAll') }}" class="m-0">
+                                @csrf
+                                <button type="submit" class="btn btn-link btn-sm p-0 text-decoration-none">Mark all read</button>
+                            </form>
+                        @endif
+                    </div>
+                    <div class="notif-list">
+                        @forelse($unreadNotifications as $notification)
+                            <form method="POST" action="{{ route('notifications.read', $notification->id) }}" class="m-0">
+                                @csrf
+                                <button type="submit" class="notif-item unread border-0 bg-transparent w-100 text-start">
+                                    <span class="notif-title">{{ $notification->data['title'] ?? 'Notification' }}</span>
+                                    <span>{{ $notification->data['message'] ?? '' }}</span><br>
+                                    <span class="notif-time">{{ $notification->created_at->diffForHumans() }}</span>
+                                </button>
+                            </form>
+                        @empty
+                            <div class="notif-empty"><i class="bi bi-check2-circle fs-4 d-block mb-1"></i>You're all caught up.</div>
+                        @endforelse
+                    </div>
+                    <div class="notif-foot">
+                        <a href="{{ route('notifications.index') }}" class="text-decoration-none small fw-semibold">View all notifications</a>
+                    </div>
+                </div>
+            </div>
             <a href="{{ route('settings.index') }}" class="profile-chip text-decoration-none text-reset">
                 <div class="avatar-badge">{{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}</div>
                 <div class="d-none d-sm-block">

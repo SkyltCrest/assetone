@@ -115,21 +115,31 @@ class DatabaseSeeder extends Seeder
 
         // Assignment history
         $assignmentData = [
-            ['asset' => 'AST-001', 'custodian' => $ahmad, 'department' => 'Information Technology', 'date' => '2026-07-20', 'status' => 'assigned'],
-            ['asset' => 'AST-002', 'custodian' => $siti, 'department' => 'Finance', 'date' => '2026-07-18', 'status' => 'assigned'],
-            ['asset' => 'AST-003', 'custodian' => $faiz, 'department' => 'Management', 'date' => '2026-07-15', 'status' => 'assigned'],
+            ['asset' => 'AST-001', 'custodian' => $ahmad, 'department' => 'Information Technology', 'date' => '2026-07-20', 'status' => 'assigned', 'verified' => true],
+            ['asset' => 'AST-002', 'custodian' => $siti, 'department' => 'Finance', 'date' => '2026-07-18', 'status' => 'assigned', 'verified' => true],
+            ['asset' => 'AST-003', 'custodian' => $faiz, 'department' => 'Management', 'date' => '2026-07-15', 'status' => 'assigned', 'verified' => true],
+            // Awaiting Siti's verification
+            ['asset' => 'AST-005', 'custodian' => $siti, 'department' => 'Administration', 'date' => '2026-09-01', 'status' => 'pending_verification', 'verified' => false],
         ];
 
         foreach ($assignmentData as $row) {
-            AssetAssignment::updateOrCreate([
+            $assignment = AssetAssignment::updateOrCreate([
                 'asset_id' => $assets[$row['asset']]->id,
                 'assigned_date' => $row['date'],
             ], [
                 'custodian_id' => $row['custodian']->id,
+                'assigned_by' => $ahmad->id,
                 'department' => $row['department'],
                 'status' => $row['status'],
+                'verified_at' => $row['verified'] ? $row['date'].' 09:00:00' : null,
                 'notes' => null,
             ]);
+
+            if ($row['status'] === 'pending_verification' && $assignment->wasRecentlyCreated) {
+                $row['custodian']->notify(new \App\Notifications\AssignmentAwaitingVerification(
+                    $assignment->load('asset', 'assignedBy')
+                ));
+            }
         }
 
         // Maintenance history

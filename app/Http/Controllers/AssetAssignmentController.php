@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\User;
+use App\Notifications\AssignmentAwaitingVerification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,8 +31,9 @@ class AssetAssignmentController extends Controller
             'search' => $search,
             'status' => $status,
             'totalCount' => AssetAssignment::count(),
-            'assignedCount' => AssetAssignment::where('status', 'assigned')->count(),
-            'returnedCount' => AssetAssignment::where('status', 'unassigned')->count(),
+            'pendingCount' => AssetAssignment::where('status', AssetAssignment::STATUS_PENDING)->count(),
+            'assignedCount' => AssetAssignment::where('status', AssetAssignment::STATUS_ASSIGNED)->count(),
+            'rejectedCount' => AssetAssignment::where('status', AssetAssignment::STATUS_REJECTED)->count(),
             'assets' => Asset::orderBy('asset_code')->get(),
             'custodians' => User::where('status', 'active')->orderBy('name')->get(),
         ]);
@@ -42,13 +44,20 @@ class AssetAssignmentController extends Controller
         $data = $this->validated($request);
 
         $asset = Asset::findOrFail($data['asset_id']);
-        $data['department'] = $asset->department ?? 'Unassigned';
 
-        $assignment = AssetAssignment::create($data);
+        $assignment = AssetAssignment::create([
+            'asset_id' => $asset->id,
+            'custodian_id' => $data['custodian_id'],
+            'assigned_by' => $request->user()->id,
+            'department' => $asset->department ?? 'Unassigned',
+            'assigned_date' => $data['assigned_date'],
+            'status' => AssetAssignment::STATUS_PENDING,
+            'notes' => $data['notes'] ?? null,
+        ]);
 
-        $this->syncAssetCustodian($assignment);
+        $assignment->custodian->notify(new AssignmentAwaitingVerification($assignment->load('asset', 'assignedBy')));
 
-        return back()->with('status', 'Asset assigned successfully.');
+        return back()->with('status', "Assignment created. Waiting for {$assignment->custodian->name} to verify.");
     }
 
     public function update(Request $request, AssetAssignment $assignment): RedirectResponse
@@ -56,9 +65,23 @@ class AssetAssignmentController extends Controller
         $data = $this->validated($request);
 
         $asset = Asset::findOrFail($data['asset_id']);
-        $data['department'] = $asset->department ?? 'Unassigned';
+        $custodianChanged = (int) $data['custodian_id'] !== (int) $assignment->custodian_id;
 
-        $assignment->update($data);
+        $assignment->update([
+            'asset_id' => $asset->id,
+            'custodian_id' => $data['custodian_id'],
+            'department' => $asset->department ?? 'Unassigned',
+            'assigned_date' => $data['assigned_date'],
+            'status' => $data['status'],
+            'notes' => $data['notes'] ?? null,
+        ]);
+
+        // Re-open verification if the officer put it back into a pending state,
+        // or reassigned a still-pending record to a different person.
+        if ($assignment->isPending() && ($custodianChanged || $assignment->wasChanged('status'))) {
+            $assignment->update(['verified_at' => null, 'rejection_reason' => null]);
+            $assignment->custodian->notify(new AssignmentAwaitingVerification($assignment->load('asset', 'assignedBy')));
+        }
 
         $this->syncAssetCustodian($assignment);
 
@@ -78,19 +101,19 @@ class AssetAssignmentController extends Controller
             'asset_id' => ['required', 'exists:assets,id'],
             'custodian_id' => ['required', 'exists:users,id'],
             'assigned_date' => ['required', 'date'],
-            'status' => ['required', 'in:assigned,unassigned'],
+            'status' => ['sometimes', 'required', 'in:pending_verification,assigned,rejected,unassigned'],
             'notes' => ['nullable', 'string'],
         ]);
     }
 
     /**
-     * Sync the asset's custodian with this assignment.
+     * Keep the asset's current custodian in step with an accepted assignment.
      */
     private function syncAssetCustodian(AssetAssignment $assignment): void
     {
         $asset = $assignment->asset;
 
-        if ($assignment->status === 'assigned') {
+        if ($assignment->status === AssetAssignment::STATUS_ASSIGNED) {
             $asset->update(['custodian_id' => $assignment->custodian_id]);
 
             return;

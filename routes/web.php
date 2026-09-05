@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AssetAssignmentController;
+use App\Http\Controllers\AssignmentVerificationController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\AssetCategoryController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetLocationController;
@@ -65,6 +67,17 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::put('assignments/{assignment}', [AssetAssignmentController::class, 'update'])->name('assignments.update');
         Route::delete('assignments/{assignment}', [AssetAssignmentController::class, 'destroy'])->name('assignments.destroy');
     });
+
+    // My assignments + verification (any logged-in user)
+    Route::get('my-assignments', [AssignmentVerificationController::class, 'index'])->name('my-assignments.index');
+    Route::get('my-assignments/{assignment}', [AssignmentVerificationController::class, 'show'])->name('my-assignments.show');
+    Route::post('my-assignments/{assignment}/accept', [AssignmentVerificationController::class, 'accept'])->name('my-assignments.accept');
+    Route::post('my-assignments/{assignment}/reject', [AssignmentVerificationController::class, 'reject'])->name('my-assignments.reject');
+
+    // Notifications (any logged-in user)
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
+    Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     // Asset maintenance (admin, asset officer)
     Route::middleware('role:administrator,asset_officer')->group(function () {

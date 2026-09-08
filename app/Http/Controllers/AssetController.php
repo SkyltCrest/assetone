@@ -67,8 +67,9 @@ class AssetController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
+        $data = $this->validated($request, requireStatus: false);
         $data['asset_code'] = $this->nextCode();
+        $data['asset_status_id'] = AssetStatus::where('name', Asset::STATUS_ACTIVE)->value('id');
 
         $asset = Asset::create($data);
 
@@ -119,7 +120,7 @@ class AssetController extends Controller
             ->header('Content-Disposition', "inline; filename=\"{$asset->asset_code}.svg\"");
     }
 
-    private function validated(Request $request): array
+    private function validated(Request $request, bool $requireStatus = true): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -133,7 +134,7 @@ class AssetController extends Controller
             'location_detail' => ['required', 'string', 'max:255'],
             'asset_location_id' => ['nullable', 'exists:asset_locations,id'],
             'custodian_id' => ['nullable', 'exists:users,id'],
-            'asset_status_id' => ['required', 'exists:asset_statuses,id'],
+            'asset_status_id' => [$requireStatus ? 'required' : 'nullable', 'exists:asset_statuses,id'],
         ]);
     }
 

@@ -5,7 +5,7 @@
 @section('subheading', 'Manage users and their system access')
 
 @php
-    $roles = ['administrator' => 'Administrator', 'asset_officer' => 'Asset Officer', 'department_staff' => 'Department Staff', 'management' => 'Management'];
+    $roles = ['administrator' => 'Administrator', 'asset_officer' => 'Asset Officer', 'department_staff' => 'Department Staff'];
 @endphp
 
 @section('content')

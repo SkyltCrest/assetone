@@ -94,6 +94,7 @@
                 @endforeach
             </select>
         </div>
+        @if($asset->exists)
         <div class="col-md-6">
             <label class="form-label">Asset Status <span class="required">*</span></label>
             <select name="asset_status_id" class="form-select @error('asset_status_id') is-invalid @enderror" required>
@@ -104,5 +105,12 @@
             </select>
             @error('asset_status_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
         </div>
+        @else
+        <div class="col-md-6">
+            <label class="form-label">Asset Status</label>
+            <input type="text" class="form-control" value="Active" disabled>
+            <small class="text-muted">New assets are registered as Active automatically.</small>
+        </div>
+        @endif
     </div>
 </div>

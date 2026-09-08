@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('username')->unique();
             $table->string('email')->unique();
-            $table->enum('role', ['administrator', 'asset_officer', 'department_staff', 'management'])->default('department_staff');
+            $table->enum('role', ['administrator', 'asset_officer', 'department_staff'])->default('department_staff');
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

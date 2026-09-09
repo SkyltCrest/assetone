@@ -43,6 +43,14 @@
         border-radius:4px; background:var(--teal); }
     .sidebar .nav-link i { margin-right: 12px; width: 18px; font-size:1rem; text-align:center; }
 
+    .nav-group-toggle{ display:flex; align-items:center; width:100%; background:transparent; border:0;
+        color:rgba(255,255,255,0.45); font-size:0.68rem; font-weight:700; letter-spacing:0.09em;
+        text-transform:uppercase; padding:14px 14px 6px; cursor:pointer; transition:color 0.15s; }
+    .nav-group-toggle:hover{ color:rgba(255,255,255,0.72); }
+    .nav-group-toggle .chev{ margin-left:auto; font-size:0.8rem; letter-spacing:0; transition:transform 0.2s ease; }
+    .nav-group-toggle[aria-expanded="false"] .chev{ transform:rotate(-90deg); }
+    .nav-group { padding-left: 6px; }
+
     .main-content { margin-left: 264px; padding: 24px 28px 40px; }
     .topbar{ background:#fff; border-radius:var(--card-radius); box-shadow:var(--shadow); padding:16px 22px;
         display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; gap:16px; flex-wrap:wrap; }
@@ -193,28 +201,56 @@
         <button type="button" class="btn-close btn-close-white sidebar-close-btn ms-auto" id="sidebarCloseBtn" aria-label="Close"></button>
     </div>
 
+    @php
+        $canManage = $user && $user->canManageAssets();
+        $grpOpsActive = request()->routeIs('assets.create', 'assets.edit', 'asset-management.*', 'categories.*', 'locations.*', 'statuses.*', 'assignments.*', 'maintenance.*', 'issue-verifications.*');
+        $grpWorkspaceActive = request()->routeIs('my-assignments.*', 'issues.*');
+        $grpReportsActive = request()->routeIs('assets.index', 'reports.*');
+        $grpAdminActive = request()->routeIs('users.*', 'settings.*');
+    @endphp
+
     <ul class="nav flex-column">
         <div class="nav-section-label">Overview</div>
         <li class="nav-item"><a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}"><i class="bi bi-speedometer2"></i> Home</a></li>
 
-        <div class="nav-section-label">Asset Operations</div>
-        @if($user && $user->canManageAssets())
-        <li class="nav-item"><a href="{{ route('assets.create') }}" class="nav-link {{ request()->routeIs('assets.create') || request()->routeIs('assets.edit') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Asset Registration</a></li>
-        <li class="nav-item"><a href="{{ route('asset-management.index') }}" class="nav-link {{ request()->routeIs('asset-management.*') || request()->routeIs('categories.*') || request()->routeIs('locations.*') || request()->routeIs('statuses.*') ? 'active' : '' }}"><i class="bi bi-tags"></i> Asset Management</a></li>
-        <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ request()->routeIs('assignments.*') ? 'active' : '' }}"><i class="bi bi-person-check"></i> Assignment</a></li>
-        <li class="nav-item"><a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"><i class="bi bi-tools"></i> Maintenance</a></li>
-        <li class="nav-item"><a href="{{ route('issue-verifications.index') }}" class="nav-link {{ request()->routeIs('issue-verifications.*') ? 'active' : '' }}"><i class="bi bi-shield-exclamation"></i> Issue Verification @if($issueVerificationCount > 0)<span class="nav-count">{{ $issueVerificationCount }}</span>@endif</a></li>
+        @if($canManage)
+        <button type="button" class="nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#navGroupOps" aria-expanded="{{ $grpOpsActive ? 'true' : 'false' }}">
+            Asset Operations <i class="bi bi-chevron-down chev"></i>
+        </button>
+        <div class="collapse nav-group {{ $grpOpsActive ? 'show' : '' }}" id="navGroupOps">
+            <li class="nav-item"><a href="{{ route('assets.create') }}" class="nav-link {{ request()->routeIs('assets.create') || request()->routeIs('assets.edit') ? 'active' : '' }}"><i class="bi bi-box-seam"></i> Asset Registration</a></li>
+            <li class="nav-item"><a href="{{ route('asset-management.index') }}" class="nav-link {{ request()->routeIs('asset-management.*') || request()->routeIs('categories.*') || request()->routeIs('locations.*') || request()->routeIs('statuses.*') ? 'active' : '' }}"><i class="bi bi-tags"></i> Asset Management</a></li>
+            <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ request()->routeIs('assignments.*') ? 'active' : '' }}"><i class="bi bi-person-check"></i> Assignment</a></li>
+            <li class="nav-item"><a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"><i class="bi bi-tools"></i> Maintenance</a></li>
+            <li class="nav-item"><a href="{{ route('issue-verifications.index') }}" class="nav-link {{ request()->routeIs('issue-verifications.*') ? 'active' : '' }}"><i class="bi bi-shield-exclamation"></i> Issue Verification @if($issueVerificationCount > 0)<span class="nav-count">{{ $issueVerificationCount }}</span>@endif</a></li>
+        </div>
         @endif
-        <li class="nav-item"><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> My Assignments @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
-        <li class="nav-item"><a href="{{ route('issues.index') }}" class="nav-link {{ request()->routeIs('issues.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon"></i> Report Issues</a></li>
-        <li class="nav-item"><a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.index') ? 'active' : '' }}"><i class="bi bi-search"></i> Search &amp; Filter</a></li>
-        <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph"></i> Asset Report</a></li>
 
-        @if($user && $user->isAdministrator())
-        <div class="nav-section-label">Administration</div>
-        <li class="nav-item"><a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="bi bi-people"></i> User Management</a></li>
-        @endif
-        <li class="nav-item"><a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><i class="bi bi-gear"></i> Settings</a></li>
+        <button type="button" class="nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#navGroupWorkspace" aria-expanded="{{ $grpWorkspaceActive ? 'true' : 'false' }}">
+            My Workspace <i class="bi bi-chevron-down chev"></i>
+        </button>
+        <div class="collapse nav-group {{ $grpWorkspaceActive ? 'show' : '' }}" id="navGroupWorkspace">
+            <li class="nav-item"><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> My Assignments @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
+            <li class="nav-item"><a href="{{ route('issues.index') }}" class="nav-link {{ request()->routeIs('issues.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon"></i> Report Issues</a></li>
+        </div>
+
+        <button type="button" class="nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#navGroupReports" aria-expanded="{{ $grpReportsActive ? 'true' : 'false' }}">
+            Reports &amp; Search <i class="bi bi-chevron-down chev"></i>
+        </button>
+        <div class="collapse nav-group {{ $grpReportsActive ? 'show' : '' }}" id="navGroupReports">
+            <li class="nav-item"><a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.index') ? 'active' : '' }}"><i class="bi bi-search"></i> Search &amp; Filter</a></li>
+            <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph"></i> Asset Report</a></li>
+        </div>
+
+        <button type="button" class="nav-group-toggle" data-bs-toggle="collapse" data-bs-target="#navGroupAdmin" aria-expanded="{{ $grpAdminActive ? 'true' : 'false' }}">
+            Administration <i class="bi bi-chevron-down chev"></i>
+        </button>
+        <div class="collapse nav-group {{ $grpAdminActive ? 'show' : '' }}" id="navGroupAdmin">
+            @if($user && $user->isAdministrator())
+            <li class="nav-item"><a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="bi bi-people"></i> User Management</a></li>
+            @endif
+            <li class="nav-item"><a href="{{ route('settings.index') }}" class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><i class="bi bi-gear"></i> Settings</a></li>
+        </div>
 
         <li class="nav-item mt-2">
             <form method="POST" action="{{ route('logout') }}">
@@ -338,6 +374,32 @@
 
     window.addEventListener('resize', function () {
         if (window.innerWidth >= 992) closeSidebar();
+    });
+
+    // Remember which sidebar groups the user leaves open/closed.
+    document.querySelectorAll('.nav-group-toggle').forEach(function (btn) {
+        var sel = btn.getAttribute('data-bs-target');
+        var target = document.querySelector(sel);
+        if (!target) return;
+        var key = 'sidebar-group:' + sel;
+        var hasActive = !!target.querySelector('.nav-link.active');
+        var stored;
+        try { stored = localStorage.getItem(key); } catch (e) {}
+
+        if (!hasActive && stored === 'closed') {
+            target.classList.remove('show');
+            btn.setAttribute('aria-expanded', 'false');
+        } else if (stored === 'open') {
+            target.classList.add('show');
+            btn.setAttribute('aria-expanded', 'true');
+        }
+
+        target.addEventListener('shown.bs.collapse', function () {
+            try { localStorage.setItem(key, 'open'); } catch (e) {}
+        });
+        target.addEventListener('hidden.bs.collapse', function () {
+            try { localStorage.setItem(key, 'closed'); } catch (e) {}
+        });
     });
 })();
 </script>

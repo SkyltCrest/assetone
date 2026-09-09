@@ -8,6 +8,7 @@ use App\Models\AssetCategory;
 use App\Models\AssetLocation;
 use App\Models\AssetMaintenance;
 use App\Models\AssetStatus;
+use App\Models\IssueReport;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -159,6 +160,18 @@ class DatabaseSeeder extends Seeder
                 'status' => $row['status'],
                 'description' => $row['desc'],
             ]);
+        }
+
+        // Reported issue awaiting the asset officer's verification
+        $issue = IssueReport::updateOrCreate(['report_code' => 'ISS-001'], [
+            'asset_id' => $assets['AST-003']->id,
+            'reported_by' => $faiz->id,
+            'description' => 'The projector overheats and shuts down after about ten minutes of use.',
+            'status' => IssueReport::STATUS_PENDING,
+        ]);
+
+        if ($issue->wasRecentlyCreated) {
+            $ahmad->notify(new \App\Notifications\IssueReported($issue->load('asset', 'reporter')));
         }
     }
 }

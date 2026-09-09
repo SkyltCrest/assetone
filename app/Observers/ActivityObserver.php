@@ -3,6 +3,7 @@
 namespace App\Observers;
 
 use App\Models\AssetAssignment;
+use App\Models\IssueReport;
 use App\Models\User;
 use App\Notifications\AdminActivityNotification;
 use App\Support\ActivityDescriptor;
@@ -78,6 +79,17 @@ class ActivityObserver
                 AssetAssignment::STATUS_REJECTED => 'rejected',
                 AssetAssignment::STATUS_PENDING => 're-opened',
                 AssetAssignment::STATUS_UNASSIGNED => 'marked as returned',
+                default => 'updated',
+            };
+
+            return [$action, null];
+        }
+
+        if ($model instanceof IssueReport && in_array('status', $changed, true)) {
+            $action = match ($model->status) {
+                IssueReport::STATUS_ACCEPTED => 'accepted',
+                IssueReport::STATUS_REJECTED => 'rejected',
+                IssueReport::STATUS_RESOLVED => 'resolved',
                 default => 'updated',
             };
 

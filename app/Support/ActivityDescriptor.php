@@ -8,6 +8,7 @@ use App\Models\AssetCategory;
 use App\Models\AssetLocation;
 use App\Models\AssetMaintenance;
 use App\Models\AssetStatus;
+use App\Models\IssueReport;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 
@@ -28,6 +29,8 @@ class ActivityDescriptor
                 .($model->asset->asset_code ?? 'an asset')
                 .' to '.($model->custodian->name ?? 'a staff member'),
             $model instanceof AssetMaintenance => 'maintenance record '.($model->maintenance_code ?? '#'.$model->id),
+            $model instanceof IssueReport => 'reported issue '.($model->report_code ?? '#'.$model->id)
+                .' on '.($model->asset->asset_code ?? 'an asset'),
             $model instanceof AssetCategory => 'asset category "'.$model->name.'"',
             $model instanceof AssetLocation => 'asset location "'.$model->name.'"',
             $model instanceof AssetStatus => 'asset status "'.$model->name.'"',
@@ -46,6 +49,7 @@ class ActivityDescriptor
             $model instanceof Asset => $deleted ? route('assets.index') : route('assets.show', $model->id),
             $model instanceof AssetAssignment => route('assignments.index'),
             $model instanceof AssetMaintenance => route('maintenance.index'),
+            $model instanceof IssueReport => route('issue-verifications.index'),
             $model instanceof AssetCategory,
             $model instanceof AssetLocation,
             $model instanceof AssetStatus => route('asset-management.index'),

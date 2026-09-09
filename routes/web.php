@@ -13,6 +13,8 @@ use App\Http\Controllers\AssetLocationController;
 use App\Http\Controllers\AssetMaintenanceController;
 use App\Http\Controllers\AssetReportController;
 use App\Http\Controllers\AssetStatusController;
+use App\Http\Controllers\IssueReportController;
+use App\Http\Controllers\IssueVerificationController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\UserController;
@@ -73,6 +75,19 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('my-assignments/{assignment}', [AssignmentVerificationController::class, 'show'])->name('my-assignments.show');
     Route::post('my-assignments/{assignment}/accept', [AssignmentVerificationController::class, 'accept'])->name('my-assignments.accept');
     Route::post('my-assignments/{assignment}/reject', [AssignmentVerificationController::class, 'reject'])->name('my-assignments.reject');
+
+    // Report Issues (any logged-in user - department staff)
+    Route::get('issues', [IssueReportController::class, 'index'])->name('issues.index');
+    Route::post('issues', [IssueReportController::class, 'store'])->name('issues.store');
+    Route::get('issues/{issue}', [IssueReportController::class, 'show'])->name('issues.show');
+
+    // Issue verification (admin, asset officer)
+    Route::middleware('role:administrator,asset_officer')->group(function () {
+        Route::get('issue-verifications', [IssueVerificationController::class, 'index'])->name('issue-verifications.index');
+        Route::get('issue-verifications/{issue}', [IssueVerificationController::class, 'show'])->name('issue-verifications.show');
+        Route::post('issue-verifications/{issue}/accept', [IssueVerificationController::class, 'accept'])->name('issue-verifications.accept');
+        Route::post('issue-verifications/{issue}/reject', [IssueVerificationController::class, 'reject'])->name('issue-verifications.reject');
+    });
 
     // Notifications (any logged-in user)
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

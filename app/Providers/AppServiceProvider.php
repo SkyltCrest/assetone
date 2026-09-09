@@ -8,6 +8,7 @@ use App\Models\AssetCategory;
 use App\Models\AssetLocation;
 use App\Models\AssetMaintenance;
 use App\Models\AssetStatus;
+use App\Models\IssueReport;
 use App\Models\User;
 use App\Observers\ActivityObserver;
 use App\Observers\AssetMaintenanceObserver;
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
         AssetCategory::class,
         AssetLocation::class,
         AssetStatus::class,
+        IssueReport::class,
         User::class,
     ];
 

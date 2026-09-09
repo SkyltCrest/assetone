@@ -23,6 +23,9 @@
     </div>
     <div class="d-flex gap-2 no-print">
         <a href="{{ route('home') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
+        @if($asset->custodian_id === auth()->id())
+            <a href="{{ route('issues.index') }}" class="btn btn-outline-warning"><i class="bi bi-exclamation-octagon me-1"></i> Report Issue</a>
+        @endif
         @if(auth()->user()->canManageAssets())
             <a href="{{ route('assets.edit', $asset) }}" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i> Edit</a>
         @endif

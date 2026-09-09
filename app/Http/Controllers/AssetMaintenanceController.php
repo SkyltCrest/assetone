@@ -57,7 +57,7 @@ class AssetMaintenanceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['maintenance_code'] = $this->nextCode();
+        $data['maintenance_code'] = AssetMaintenance::nextCode();
 
         AssetMaintenance::create($data);
 
@@ -89,13 +89,5 @@ class AssetMaintenanceController extends Controller
             'status' => ['required', 'in:'.implode(',', array_keys(self::STATUSES))],
             'description' => ['nullable', 'string'],
         ]);
-    }
-
-    private function nextCode(): string
-    {
-        $last = AssetMaintenance::orderByDesc('id')->first();
-        $next = $last ? ((int) substr($last->maintenance_code, 4)) + 1 : 1;
-
-        return 'MNT-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 }

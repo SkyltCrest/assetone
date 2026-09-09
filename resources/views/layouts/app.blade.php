@@ -176,6 +176,9 @@
         ? \App\Models\AssetAssignment::where('custodian_id', $user->id)
             ->where('status', \App\Models\AssetAssignment::STATUS_PENDING)->count()
         : 0;
+    $issueVerificationCount = ($user && $user->canManageAssets())
+        ? \App\Models\IssueReport::where('status', \App\Models\IssueReport::STATUS_PENDING)->count()
+        : 0;
 @endphp
 
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -200,8 +203,10 @@
         <li class="nav-item"><a href="{{ route('asset-management.index') }}" class="nav-link {{ request()->routeIs('asset-management.*') || request()->routeIs('categories.*') || request()->routeIs('locations.*') || request()->routeIs('statuses.*') ? 'active' : '' }}"><i class="bi bi-tags"></i> Asset Management</a></li>
         <li class="nav-item"><a href="{{ route('assignments.index') }}" class="nav-link {{ request()->routeIs('assignments.*') ? 'active' : '' }}"><i class="bi bi-person-check"></i> Assignment</a></li>
         <li class="nav-item"><a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*') ? 'active' : '' }}"><i class="bi bi-tools"></i> Maintenance</a></li>
+        <li class="nav-item"><a href="{{ route('issue-verifications.index') }}" class="nav-link {{ request()->routeIs('issue-verifications.*') ? 'active' : '' }}"><i class="bi bi-shield-exclamation"></i> Issue Verification @if($issueVerificationCount > 0)<span class="nav-count">{{ $issueVerificationCount }}</span>@endif</a></li>
         @endif
         <li class="nav-item"><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i> My Assignments @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
+        <li class="nav-item"><a href="{{ route('issues.index') }}" class="nav-link {{ request()->routeIs('issues.*') ? 'active' : '' }}"><i class="bi bi-exclamation-octagon"></i> Report Issues</a></li>
         <li class="nav-item"><a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.index') ? 'active' : '' }}"><i class="bi bi-search"></i> Search &amp; Filter</a></li>
         <li class="nav-item"><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph"></i> Asset Report</a></li>
 

@@ -28,6 +28,12 @@
         @endif
         @if(auth()->user()->canManageAssets())
             <a href="{{ route('assets.edit', $asset) }}" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i> Edit</a>
+            <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-inline"
+                  onsubmit="return confirm('Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its assignment, maintenance and issue history. This cannot be undone.');">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i> Delete</button>
+            </form>
         @endif
         <button onclick="window.print()" class="btn btn-save"><i class="bi bi-printer me-1"></i> Print</button>
     </div>

@@ -96,9 +96,10 @@ class AssetController extends Controller
 
     public function destroy(Asset $asset): RedirectResponse
     {
+        $name = $asset->name;
         $asset->delete();
 
-        return back()->with('status', 'Asset has been deleted.');
+        return redirect()->route('assets.index')->with('status', "Asset \"{$name}\" has been deleted.");
     }
 
     public function show(Asset $asset): View

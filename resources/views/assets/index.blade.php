@@ -90,7 +90,13 @@
                         <td>
                             <a href="{{ route('assets.show', $asset) }}" class="btn btn-sm btn-outline-primary me-1" title="View"><i class="bi bi-eye"></i></a>
                             @if(auth()->user()->canManageAssets())
-                                <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-secondary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-inline"
+                                      onsubmit="return confirm('Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its assignment, maintenance and issue history. This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                </form>
                             @endif
                         </td>
                     </tr>

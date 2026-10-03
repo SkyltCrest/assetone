@@ -7,7 +7,8 @@
 @section('content')
 
 <div class="auth-header">
-    <h2>Welcome Back</h2>
+    <div class="clock" id="clock"></div>
+    <h2 id="greeting" data-greet>Welcome Back</h2>
     <p>Please sign in to access your AssetOne account.</p>
 </div>
 
@@ -45,6 +46,7 @@
                 <div class="invalid-feedback">Please enter your password.</div>
             @enderror
         </div>
+        <div class="hint" data-caps-for="passwordField"><i class="bi bi-exclamation-triangle me-1"></i>Caps Lock is on</div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-4">

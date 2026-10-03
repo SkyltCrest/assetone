@@ -4,15 +4,6 @@
 @section('heading', 'Verify Reported Issue')
 @section('subheading', $report->report_code)
 
-@push('styles')
-<style>
-    .detail-row{ display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px dashed #EEF1F6; font-size:0.9rem; gap:16px; }
-    .detail-row:last-child{ border-bottom:none; }
-    .detail-row .label{ color:var(--muted); }
-    .detail-row .value{ font-weight:600; text-align:right; }
-</style>
-@endpush
-
 @section('content')
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">

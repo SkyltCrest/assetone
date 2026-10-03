@@ -4,23 +4,6 @@
 @section('heading', 'Reported Issue')
 @section('subheading', $report->report_code)
 
-@push('styles')
-<style>
-    .detail-row{ display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px dashed #EEF1F6; font-size:0.9rem; gap:16px; }
-    .detail-row:last-child{ border-bottom:none; }
-    .detail-row .label{ color:var(--muted); }
-    .detail-row .value{ font-weight:600; text-align:right; }
-    .step{ display:flex; gap:12px; padding:12px 0; }
-    .step .dot{ width:26px; height:26px; min-width:26px; border-radius:50%; display:flex; align-items:center;
-        justify-content:center; font-size:0.8rem; background:#EEF1F6; color:var(--muted); }
-    .step.done .dot{ background:var(--success-bg); color:var(--success); }
-    .step.current .dot{ background:var(--info-bg); color:var(--blue); }
-    .step.rejected .dot{ background:var(--danger-bg); color:var(--danger); }
-    .step .step-title{ font-weight:600; font-size:0.9rem; }
-    .step .step-sub{ color:var(--muted); font-size:0.82rem; }
-</style>
-@endpush
-
 @section('content')
 
 @php

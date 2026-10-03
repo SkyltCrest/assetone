@@ -7,6 +7,7 @@
 @section('content')
 
 <div class="auth-header">
+    <div class="clock" id="clock"></div>
     <h2>Forgot Password?</h2>
     <p>Enter your registered email address and we will send you a password reset link.</p>
 </div>

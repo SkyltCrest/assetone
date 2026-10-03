@@ -9,14 +9,6 @@
     $badgeColors = ['success' => 'Green (Success)', 'warning' => 'Yellow (Warning)', 'danger' => 'Red (Danger)', 'secondary' => 'Grey (Secondary)', 'info' => 'Blue (Info)', 'dark' => 'Dark Grey'];
 @endphp
 
-@push('styles')
-<style>
-    .module-tabs{ background:#fff; border-radius:var(--card-radius); padding:8px; box-shadow:var(--shadow); }
-    .module-tabs .nav-link{ color:var(--muted); font-weight:600; border-radius:10px; padding:12px 20px; }
-    .module-tabs .nav-link.active{ background:var(--blue); color:#fff; }
-</style>
-@endpush
-
 @section('content')
 
 <div class="mb-4">

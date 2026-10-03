@@ -7,6 +7,7 @@
 @section('content')
 
 <div class="auth-header">
+    <div class="clock" id="clock"></div>
     <h2>Reset Password</h2>
     <p>Create a new password for your AssetOne account.</p>
 </div>

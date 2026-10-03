@@ -137,6 +137,13 @@
                         <option value="desc" @selected($dir === 'desc')>Desc</option>
                     </select>
                 </div>
+                <label class="form-label small fw-semibold text-muted mt-3">Group by</label>
+                <select name="group" class="form-select">
+                    <option value="">No grouping</option>
+                    @foreach($groupOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($group === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
 
@@ -230,6 +237,15 @@
             </thead>
             <tbody>
                 @forelse($assets as $i => $asset)
+                    @if($group && ($i === 0 || $groupLabels[$asset->id] !== $groupLabels[$assets[$i - 1]->id]))
+                        @php $summary = $groupSummary[$groupLabels[$asset->id]]; @endphp
+                        <tr class="group-row">
+                            <td colspan="{{ count($selectedColumns) + 1 }}">
+                                <i class="bi bi-folder2-open me-2"></i>{{ $groupOptions[$group] }}: <strong>{{ $groupLabels[$asset->id] }}</strong>
+                                <span class="text-muted ms-2">{{ $summary['count'] }} {{ \Illuminate\Support\Str::plural('asset', $summary['count']) }} &middot; RM {{ number_format($summary['value'], 2) }}</span>
+                            </td>
+                        </tr>
+                    @endif
                     <tr>
                         <td>{{ $i + 1 }}</td>
                         @foreach($selectedColumns as $key)

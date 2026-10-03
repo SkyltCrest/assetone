@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPhotos;
 use App\Observers\ActivityObserver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Asset extends Model
 {
-    use HasFactory;
+    use HasFactory, HasPhotos;
 
     /**
      * Asset status names that are driven automatically by maintenance activity.
@@ -22,16 +23,20 @@ class Asset extends Model
     protected $fillable = [
         'asset_code',
         'name',
+        'serial_number',
         'description',
         'asset_category_id',
+        'asset_type_id',
         'asset_location_id',
         'asset_status_id',
         'custodian_id',
+        'assigned_date',
         'department',
         'location_detail',
         'purchase_date',
         'purchase_price',
         'supplier',
+        'po_reference',
         'warranty_expiry_date',
         'qr_code_path',
     ];
@@ -40,6 +45,7 @@ class Asset extends Model
     {
         return [
             'purchase_date' => 'date',
+            'assigned_date' => 'date',
             'warranty_expiry_date' => 'date',
             'purchase_price' => 'decimal:2',
         ];
@@ -48,6 +54,11 @@ class Asset extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(AssetCategory::class, 'asset_category_id');
+    }
+
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(AssetType::class, 'asset_type_id');
     }
 
     public function location(): BelongsTo
@@ -122,7 +133,8 @@ class Asset extends Model
 
         return $query->where(function ($q) use ($term) {
             $q->where('asset_code', 'like', "%{$term}%")
-                ->orWhere('name', 'like', "%{$term}%");
+                ->orWhere('name', 'like', "%{$term}%")
+                ->orWhere('serial_number', 'like', "%{$term}%");
         });
     }
 }

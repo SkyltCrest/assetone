@@ -69,7 +69,7 @@
             <p class="lo-sub">You'll need to sign in again to get back to your dashboard.</p>
         </div>
         <div class="lo-user">
-            <div class="lo-av">{{ $initials }}</div>
+            <div class="lo-av">@if($user?->photo)<img src="{{ $user->photoUrl() }}" alt="">@else{{ $initials }}@endif</div>
             <div><b>{{ $user->name ?? 'Guest' }}</b><small>{{ $roleLabel }}</small></div>
             <span class="lo-live"><i></i>Active</span>
         </div>
@@ -218,13 +218,13 @@
                 <div class="nav-panel" id="eyePanel">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <strong><i class="bi bi-eye me-2"></i>Eye Comfort</strong>
-                        <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="eyeOn" aria-label="Eye comfort on/off"></div>
+                        <div class="form-check form-switch m-0"><input class="form-check-input" type="checkbox" role="switch" id="eyeOn" data-eye="on" aria-label="Eye comfort on/off"></div>
                     </div>
                     <p class="small text-muted mb-3">Warms the screen colours to cut blue light.</p>
-                    <label class="small fw-semibold d-flex justify-content-between" for="eyeLevel"><span>Warmth</span><span id="eyeVal"></span></label>
-                    <input type="range" class="form-range" id="eyeLevel" min="0" max="100" step="5">
+                    <label class="small fw-semibold d-flex justify-content-between" for="eyeLevel"><span>Warmth</span><span data-eye="value"></span></label>
+                    <input type="range" class="form-range" id="eyeLevel" data-eye="level" min="0" max="100" step="5">
                     <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="eyeAuto">
+                        <input class="form-check-input" type="checkbox" id="eyeAuto" data-eye="auto">
                         <label class="form-check-label small" for="eyeAuto">Auto: warmer in the evening &amp; at night</label>
                     </div>
                 </div>
@@ -239,7 +239,7 @@
                     <div class="fw-semibold lh-1 mb-1">{{ $user->name ?? 'Guest' }}</div>
                     <small class="text-muted">{{ $roleLabel }}</small>
                 </div>
-                <div class="profile-icon">{{ $initials }}</div>
+                <div class="profile-icon">@if($user?->photo)<img src="{{ $user->photoUrl() }}" alt="">@else{{ $initials }}@endif</div>
             </a>
         </div>
     </div>
@@ -293,6 +293,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/assetone.js') }}?v={{ filemtime(public_path('js/assetone.js')) }}"></script>
+<script src="{{ asset('js/photo-picker.js') }}?v={{ filemtime(public_path('js/photo-picker.js')) }}"></script>
 @stack('scripts')
 </body>
 </html>

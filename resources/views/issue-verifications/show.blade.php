@@ -30,6 +30,18 @@
             @endif
         </div>
 
+
+        @if($report->photos->isNotEmpty())
+            <div class="content-card mb-4">
+                <h5 class="mb-3">Photos of the Damage</h5>
+                <div class="photo-grid">
+                    @foreach($report->photos as $photo)
+                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener"><img src="{{ $photo->url() }}" alt="Damage photo {{ $loop->iteration }}" loading="lazy"></a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="content-card">
             <h5 class="mb-3">Asset Information</h5>
             <div class="detail-row"><span class="label">Asset Code</span><span class="value">{{ $report->asset->asset_code ?? '—' }}</span></div>

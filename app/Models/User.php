@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPhotos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -10,7 +11,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasPhotos, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -22,6 +23,7 @@ class User extends Authenticatable
         'username',
         'email',
         'role',
+        'department',
         'status',
         'password',
     ];
@@ -63,6 +65,17 @@ class User extends Authenticatable
     public function assignments(): HasMany
     {
         return $this->hasMany(AssetAssignment::class, 'custodian_id');
+    }
+
+    /**
+     * Up to two initials, shown where the user has no profile picture.
+     */
+    public function initials(): string
+    {
+        $words = preg_split('/\s+/', trim($this->name)) ?: [];
+        $letters = array_map(fn ($word) => mb_strtoupper(mb_substr($word, 0, 1)), array_slice($words, 0, 2));
+
+        return implode('', $letters) ?: 'A';
     }
 
     public function isAdministrator(): bool

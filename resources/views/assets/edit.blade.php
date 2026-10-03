@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Asset')
-@section('heading', 'Asset Registration')
+@section('title', 'Update Asset')
+@section('heading', 'Update Asset')
 @section('subheading', 'Update an existing asset record')
 
 @section('content')
 
 <div class="mb-4">
-    <h3 class="fw-bold">Edit Asset — {{ $asset->asset_code }}</h3>
+    <h3 class="fw-bold">Update Asset — {{ $asset->asset_code }}</h3>
     <p class="text-muted">Update the details below and save your changes.</p>
 </div>
 
-<form method="POST" action="{{ route('assets.update', $asset) }}">
+<form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data">
     @csrf
     @method('PUT')
 

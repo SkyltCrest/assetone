@@ -63,11 +63,25 @@ class DatabaseSeeder extends Seeder
 
         // Asset categories
         $categories = [
-            'CAT-001' => AssetCategory::updateOrCreate(['code' => 'CAT-001'], ['name' => 'Computer & IT Equipment', 'description' => 'Computers and IT-related equipment', 'status' => 'active']),
-            'CAT-002' => AssetCategory::updateOrCreate(['code' => 'CAT-002'], ['name' => 'Office Equipment', 'description' => 'Equipment used for office operations', 'status' => 'active']),
-            'CAT-003' => AssetCategory::updateOrCreate(['code' => 'CAT-003'], ['name' => 'Furniture', 'description' => 'Tables, chairs and office furniture', 'status' => 'active']),
-            'CAT-004' => AssetCategory::updateOrCreate(['code' => 'CAT-004'], ['name' => 'Vehicle', 'description' => 'Official vehicles owned by MDPT', 'status' => 'active']),
+            'CAT-001' => AssetCategory::updateOrCreate(['code' => 'CAT-001'], ['short_code' => 'C', 'name' => 'Computer & IT Equipment', 'description' => 'Computers and IT-related equipment', 'status' => 'active']),
+            'CAT-002' => AssetCategory::updateOrCreate(['code' => 'CAT-002'], ['short_code' => 'OE', 'name' => 'Office Equipment', 'description' => 'Equipment used for office operations', 'status' => 'active']),
+            'CAT-003' => AssetCategory::updateOrCreate(['code' => 'CAT-003'], ['short_code' => 'F', 'name' => 'Furniture', 'description' => 'Tables, chairs and office furniture', 'status' => 'active']),
+            'CAT-004' => AssetCategory::updateOrCreate(['code' => 'CAT-004'], ['short_code' => 'V', 'name' => 'Vehicle', 'description' => 'Official vehicles owned by MDPT', 'status' => 'active']),
         ];
+
+        // Asset types per category; their codes form the middle of generated asset codes (e.g. C-LAP-2026-001)
+        $types = [
+            'CAT-001' => ['Laptop' => 'LAP', 'Desktop Computer' => 'DES', 'Monitor' => 'MON', 'Printer' => 'PRI', 'Projector' => 'PRO', 'Network Equipment' => 'NET'],
+            'CAT-002' => ['Photocopier' => 'COP', 'Scanner' => 'SCN', 'Telephone' => 'TEL', 'Shredder' => 'SHR'],
+            'CAT-003' => ['Office Chair' => 'CHR', 'Office Table' => 'TBL', 'Cabinet' => 'CAB', 'Sofa' => 'SOF', 'Bookshelf' => 'BKS'],
+            'CAT-004' => ['Car' => 'CAR', 'Van' => 'VAN', 'Motorcycle' => 'MOT', 'Lorry' => 'LOR'],
+        ];
+
+        foreach ($types as $categoryCode => $list) {
+            foreach ($list as $name => $code) {
+                $categories[$categoryCode]->types()->updateOrCreate(['name' => $name], ['code' => $code]);
+            }
+        }
 
         // Asset locations
         $locations = [

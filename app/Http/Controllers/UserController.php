@@ -3,70 +3,93 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\PhotoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class UserController extends Controller
 {
+    public const ROLES = [
+        'administrator' => 'Administrator',
+        'asset_officer' => 'Asset Officer',
+        'department_staff' => 'Department Staff',
+    ];
+
+    /** Sort options: label and the column/direction pairs to order by. */
+    private const SORTS = [
+        'name' => ['Name A-Z', [['name', 'asc']]],
+        'name_desc' => ['Name Z-A', [['name', 'desc']]],
+        'role' => ['Role', [['role', 'asc'], ['name', 'asc']]],
+        'department' => ['Department', [['department', 'asc'], ['name', 'asc']]],
+        'status' => ['Status', [['status', 'asc'], ['name', 'asc']]],
+        'newest' => ['Newest first', [['created_at', 'desc']]],
+    ];
+
+    public function __construct(private readonly PhotoService $photoService) {}
+
     public function index(Request $request): View
     {
         $search = $request->query('search');
         $role = $request->query('role');
         $status = $request->query('status');
+        $department = $request->query('department');
+        $sort = array_key_exists($request->query('sort'), self::SORTS) ? $request->query('sort') : 'name';
 
-        $users = User::query()
+        $users = User::with('photo')
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('username', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")))
             ->when($role, fn ($q) => $q->where('role', $role))
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderBy('name')
-            ->paginate(10)
-            ->withQueryString();
+            ->when($department, fn ($q) => $q->where('department', $department));
+
+        foreach (self::SORTS[$sort][1] as [$column, $direction]) {
+            $users->orderBy($column, $direction);
+        }
 
         return view('users.index', [
-            'users' => $users,
+            'users' => $users->paginate(10)->withQueryString(),
             'search' => $search,
             'role' => $role,
             'status' => $status,
+            'department' => $department,
+            'sort' => $sort,
+            'sorts' => array_map(fn ($option) => 'Sort: '.$option[0], self::SORTS),
+            'roles' => self::ROLES,
+            'departments' => config('assetone.departments'),
             'totalUsers' => User::count(),
             'activeUsers' => User::where('status', 'active')->count(),
             'inactiveUsers' => User::where('status', 'inactive')->count(),
-            'adminUsers' => User::where('role', 'administrator')->count(),
+            'departmentCount' => User::whereNotNull('department')->distinct()->count('department'),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'in:administrator,asset_officer,department_staff'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
-
+        $data = $this->validated($request);
         $data['password'] = Hash::make($data['password']);
 
-        $user = User::create($data);
+        $user = DB::transaction(function () use ($data, $request) {
+            $user = User::create($data);
+
+            if ($request->hasFile('photo')) {
+                $this->photoService->attach($user, $request->file('photo'));
+            }
+
+            return $user;
+        });
 
         return back()->with('status', "User \"{$user->name}\" has been added successfully.");
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username,'.$user->id],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['nullable', 'string', 'min:8'],
-            'role' => ['required', 'in:administrator,asset_officer,department_staff'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
+        $data = $this->validated($request, $user);
 
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);
@@ -74,7 +97,13 @@ class UserController extends Controller
             unset($data['password']);
         }
 
-        $user->update($data);
+        DB::transaction(function () use ($user, $data, $request) {
+            $user->update($data);
+
+            if ($request->hasFile('photo')) {
+                $this->photoService->replace($user, $request->file('photo'));
+            }
+        });
 
         return back()->with('status', "User \"{$user->name}\" has been updated.");
     }
@@ -88,5 +117,29 @@ class UserController extends Controller
         $user->delete();
 
         return back()->with('status', 'User has been deleted.');
+    }
+
+    private function validated(Request $request, ?User $user = null): array
+    {
+        // An account may keep a role that is no longer offered in the list.
+        $roles = array_keys(self::ROLES);
+        if ($user) {
+            $roles[] = $user->role;
+        }
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user?->id)],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
+            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
+            'role' => ['required', Rule::in($roles)],
+            'department' => ['required', 'string', 'max:255'],
+            'status' => ['required', 'in:active,inactive'],
+            'photo' => ['nullable', ...PhotoService::RULES],
+        ]);
+
+        unset($data['photo']);
+
+        return $data;
     }
 }

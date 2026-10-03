@@ -1,8 +1,9 @@
 FROM dunglas/frankenphp:1-php8.2
 
-# Laravel needs pdo_mysql; zip lets Composer unpack faster. Most other common
+# Laravel needs pdo_mysql; zip lets Composer unpack faster; gd shrinks
+# uploaded photos before they are stored. Most other common
 # extensions already ship in the FrankenPHP image.
-RUN install-php-extensions pdo_mysql zip
+RUN install-php-extensions pdo_mysql zip gd
 
 # The image ships the frankenphp binary with a cap_net_bind_service file
 # capability (for binding :80/:443). Render runs containers with privilege

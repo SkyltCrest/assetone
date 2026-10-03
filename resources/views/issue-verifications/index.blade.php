@@ -11,6 +11,25 @@
     <p class="text-muted mb-0">Staff-reported asset faults. Test the asset, then accept the report to open maintenance, or reject it if the asset works properly.</p>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Total Reports</div><h2>{{ $totalCount }}</h2></div>
+        <div class="stat-icon icon-blue"><i class="bi bi-clipboard-data"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Pending</div><h2>{{ $pendingCount }}</h2></div>
+        <div class="stat-icon icon-orange"><i class="bi bi-hourglass-split"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Under Maintenance</div><h2>{{ $maintenanceCount }}</h2></div>
+        <div class="stat-icon icon-red"><i class="bi bi-tools"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Resolved</div><h2>{{ $resolvedCount }}</h2></div>
+        <div class="stat-icon icon-green"><i class="bi bi-check-circle"></i></div>
+    </div></div>
+</div>
+
 @if($pendingCount > 0)
     <div class="alert alert-warning d-flex align-items-center gap-2">
         <i class="bi bi-exclamation-triangle-fill"></i>
@@ -24,6 +43,7 @@
             <thead>
                 <tr>
                     <th>Report ID</th>
+                    <th>Picture</th>
                     <th>Asset</th>
                     <th>Reported By</th>
                     <th>Reported On</th>
@@ -35,6 +55,7 @@
                 @forelse($reports as $report)
                     <tr>
                         <td class="fw-semibold">{{ $report->report_code }}</td>
+                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo'])</td>
                         <td>
                             {{ $report->asset->asset_code ?? '—' }}
                             <span class="text-muted">{{ $report->asset->name ?? '' }}</span>
@@ -55,10 +76,10 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">
+                    <tr><td colspan="7">
                         <div class="text-center py-5">
                             <i class="bi bi-shield-check display-4 text-muted"></i>
-                            <h5 class="mt-3">No Reported Issues</h5>
+                            <h5 class="mt-3">No Reports Found</h5>
                             <p class="text-muted">Nothing has been reported yet.</p>
                         </div>
                     </td></tr>

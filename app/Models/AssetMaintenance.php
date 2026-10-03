@@ -14,12 +14,14 @@ class AssetMaintenance extends Model
     public const STATUS_PENDING = 'pending';
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_COMPLETED = 'completed';
+    public const STATUS_CANCELLED = 'cancelled';
 
     protected $fillable = [
         'maintenance_code',
         'asset_id',
         'type',
         'maintenance_date',
+        'next_maintenance_date',
         'service_provider',
         'cost',
         'status',
@@ -30,6 +32,7 @@ class AssetMaintenance extends Model
     {
         return [
             'maintenance_date' => 'date',
+            'next_maintenance_date' => 'date',
             'cost' => 'decimal:2',
         ];
     }
@@ -45,6 +48,40 @@ class AssetMaintenance extends Model
     public function issueReport(): HasOne
     {
         return $this->hasOne(IssueReport::class);
+    }
+
+    /**
+     * Where the next scheduled maintenance stands today.
+     *
+     * @return array{0: string, 1: string}  [label, Bootstrap colour]
+     */
+    public function dueStatus(): array
+    {
+        if ($this->next_maintenance_date === null) {
+            return ['No Schedule', 'secondary'];
+        }
+
+        if (in_array($this->status, [self::STATUS_COMPLETED, self::STATUS_CANCELLED], true)) {
+            return ['Scheduled', 'success'];
+        }
+
+        $days = today()->diffInDays($this->next_maintenance_date, false);
+
+        return match (true) {
+            $days < 0 => ['Overdue', 'danger'],
+            $days <= 7 => ['Due Soon', 'warning'],
+            default => ['Scheduled', 'success'],
+        };
+    }
+
+    /**
+     * Open records whose next maintenance date has passed.
+     */
+    public function scopeOverdue($query)
+    {
+        return $query->whereNotIn('status', [self::STATUS_COMPLETED, self::STATUS_CANCELLED])
+            ->whereNotNull('next_maintenance_date')
+            ->whereDate('next_maintenance_date', '<', today());
     }
 
     /**

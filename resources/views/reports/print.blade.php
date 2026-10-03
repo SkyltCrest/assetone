@@ -28,6 +28,7 @@
         font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
     tbody td { padding: 6px 8px; border-bottom: 1px solid #E4E8F0; }
     tbody tr:nth-child(even) { background: #F8FAFC; }
+    tr.group-row td { background: #E7EDF6 !important; color: #0B3159; font-size: 11px; padding: 7px 8px; border-top: 1px solid #0B3159; }
     tfoot th { padding: 7px 8px; border-top: 2px solid #0B3159; text-align: right; }
     .num { text-align: right; }
     .empty { text-align: center; padding: 24px; color: #6B7A90; }
@@ -88,6 +89,12 @@
     </thead>
     <tbody>
         @forelse($assets as $i => $asset)
+            @if($group && ($i === 0 || $groupLabels[$asset->id] !== $groupLabels[$assets[$i - 1]->id]))
+                @php $summary = $groupSummary[$groupLabels[$asset->id]]; @endphp
+                <tr class="group-row">
+                    <td colspan="{{ count($selectedColumns) + 1 }}">{{ $groupOptions[$group] }}: <strong>{{ $groupLabels[$asset->id] }}</strong> &mdash; {{ $summary['count'] }} {{ \Illuminate\Support\Str::plural('asset', $summary['count']) }}, RM {{ number_format($summary['value'], 2) }}</td>
+                </tr>
+            @endif
             <tr>
                 <td>{{ $i + 1 }}</td>
                 @foreach($selectedColumns as $key)

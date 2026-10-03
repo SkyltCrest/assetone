@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AssetCategory;
 use App\Models\AssetLocation;
 use App\Models\AssetStatus;
+use App\Models\AssetType;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -17,6 +18,7 @@ class SettingsController extends Controller
         $statusSearch = $request->query('status_search');
 
         $categories = AssetCategory::withCount('assets')
+            ->with(['types' => fn ($q) => $q->withCount('assets')])
             ->when($categorySearch, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', "%{$categorySearch}%")
                 ->orWhere('code', 'like', "%{$categorySearch}%")))
@@ -28,7 +30,10 @@ class SettingsController extends Controller
             ->when($locationSearch, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', "%{$locationSearch}%")
                 ->orWhere('code', 'like', "%{$locationSearch}%")
-                ->orWhere('department', 'like', "%{$locationSearch}%")))
+                ->orWhere('department', 'like', "%{$locationSearch}%")
+                ->orWhere('building', 'like', "%{$locationSearch}%")
+                ->orWhere('floor', 'like', "%{$locationSearch}%")
+                ->orWhere('room', 'like', "%{$locationSearch}%")))
             ->orderBy('code')
             ->paginate(10, ['*'], 'locationsPage')
             ->withQueryString();
@@ -48,6 +53,10 @@ class SettingsController extends Controller
             'locationSearch' => $locationSearch,
             'statuses' => $statuses,
             'statusSearch' => $statusSearch,
+            'categoryTotal' => AssetCategory::count(),
+            'typeTotal' => AssetType::count(),
+            'locationTotal' => AssetLocation::count(),
+            'statusTotal' => AssetStatus::count(),
         ]);
     }
 }

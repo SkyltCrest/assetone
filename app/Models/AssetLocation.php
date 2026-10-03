@@ -14,9 +14,20 @@ class AssetLocation extends Model
         'code',
         'name',
         'department',
+        'building',
+        'floor',
+        'room',
         'description',
         'status',
     ];
+
+    /**
+     * "Block A / Level 2 / Room 2.05" - only the parts that are filled in.
+     */
+    public function place(): string
+    {
+        return implode(' / ', array_filter([$this->building, $this->floor, $this->room]));
+    }
 
     public function assets(): HasMany
     {

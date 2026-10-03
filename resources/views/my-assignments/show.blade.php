@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Verify Assignment')
-@section('heading', 'Verify Assignment')
+@section('title', 'Assignment Details')
+@section('heading', 'Assignment Details')
 @section('subheading', $assignment->asset->asset_code ?? '')
 
 @section('content')
@@ -23,6 +23,12 @@
             <div class="detail-row"><span class="label">Assigned To</span><span class="value">{{ $assignment->custodian->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Department</span><span class="value">{{ $assignment->department }}</span></div>
             <div class="detail-row"><span class="label">Assignment Date</span><span class="value">{{ $assignment->assigned_date->format('d F Y') }}</span></div>
+            @if($assignment->due_date)
+                <div class="detail-row"><span class="label">Due Date</span><span class="value {{ $assignment->isOverdue() ? 'text-danger' : '' }}">{{ $assignment->due_date->format('d F Y') }}@if($assignment->loan_days) <span class="text-muted fw-normal">({{ $assignment->loan_days }} days)</span>@endif</span></div>
+            @endif
+            @if($assignment->returned_date)
+                <div class="detail-row"><span class="label">Returned On</span><span class="value">{{ $assignment->returned_date->format('d F Y') }}</span></div>
+            @endif
             @if($assignment->verified_at)
                 <div class="detail-row"><span class="label">Verified On</span><span class="value">{{ $assignment->verified_at->format('d F Y, g:i A') }}</span></div>
             @endif
@@ -36,13 +42,18 @@
 
         <div class="content-card">
             <h5 class="mb-3">Asset Information</h5>
+            @if($assignment->asset?->photo)
+                <a href="{{ $assignment->asset->photoUrl() }}" target="_blank" rel="noopener"><img src="{{ $assignment->asset->photoUrl() }}" alt="Photo of {{ $assignment->asset->name }}" class="asset-photo mb-3"></a>
+            @endif
             <div class="detail-row"><span class="label">Asset Code</span><span class="value">{{ $assignment->asset->asset_code ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Asset Name</span><span class="value">{{ $assignment->asset->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Category</span><span class="value">{{ $assignment->asset->category->name ?? '—' }}</span></div>
+            <div class="detail-row"><span class="label">Asset Type</span><span class="value">{{ $assignment->asset->type->name ?? '—' }}</span></div>
+            <div class="detail-row"><span class="label">Serial Number</span><span class="value">{{ $assignment->asset->serial_number ?: '—' }}</span></div>
             <div class="detail-row"><span class="label">Description</span><span class="value">{{ $assignment->asset->description ?: '—' }}</span></div>
             <div class="detail-row"><span class="label">Current Status</span><span class="value">{{ $assignment->asset->assetStatus->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Location</span><span class="value">{{ $assignment->asset->location_detail ?: ($assignment->asset->location->name ?? '—') }}</span></div>
-            <div class="detail-row"><span class="label">Serial / Supplier</span><span class="value">{{ $assignment->asset->supplier ?: '—' }}</span></div>
+            <div class="detail-row"><span class="label">Supplier</span><span class="value">{{ $assignment->asset->supplier ?: '—' }}</span></div>
             <div class="detail-row"><span class="label">Purchase Date</span><span class="value">{{ optional($assignment->asset->purchase_date)->format('d F Y') ?? '—' }}</span></div>
         </div>
     </div>
@@ -63,8 +74,8 @@
                 <form method="POST" action="{{ route('my-assignments.reject', $assignment) }}" onsubmit="return confirm('Reject this assignment?');">
                     @csrf
                     <div class="mb-2">
-                        <label class="form-label fw-medium">Reason for rejection <span class="text-muted">(optional)</span></label>
-                        <textarea name="rejection_reason" class="form-control" rows="3" placeholder="e.g. Serial number does not match, asset is damaged...">{{ old('rejection_reason') }}</textarea>
+                        <label class="form-label fw-medium">Reason for rejection <span class="required">*</span></label>
+                        <textarea name="rejection_reason" class="form-control @error('rejection_reason') is-invalid @enderror" rows="3" required placeholder="e.g. Serial number does not match, asset is damaged...">{{ old('rejection_reason') }}</textarea>
                     </div>
                     <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-x-circle me-1"></i> Reject Assignment</button>
                 </form>

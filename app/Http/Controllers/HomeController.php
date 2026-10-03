@@ -31,11 +31,21 @@ class HomeController extends Controller
             ->take(5)
             ->get();
 
+        $categoryBreakdown = AssetCategory::withCount('assets')
+            ->orderByDesc('assets_count')
+            ->get(['id', 'name']);
+
+        $users = User::orderByDesc('created_at')->get(['id', 'name', 'email', 'role', 'status', 'created_at']);
+
         return view('home', [
             'assetTotal' => $assetTotal,
             'categoryTotal' => AssetCategory::count(),
             'locationTotal' => AssetLocation::count(),
-            'userTotal' => User::count(),
+            'userTotal' => $users->count(),
+            'activeUserTotal' => $users->where('status', 'active')->count(),
+            'roleBreakdown' => $users->countBy('role')->sortDesc(),
+            'recentUsers' => $users->take(5),
+            'categoryBreakdown' => $categoryBreakdown,
             'statusBreakdown' => $statusBreakdown,
             'recentAssets' => $recentAssets,
             'recentMaintenance' => $recentMaintenance,

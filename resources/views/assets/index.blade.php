@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Search & Filter')
-@section('heading', 'Search & Filter')
+@section('title', 'Asset Overview')
+@section('heading', 'Asset Overview')
 @section('subheading', 'Find and filter registered assets')
 
 @section('content')

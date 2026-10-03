@@ -4,16 +4,6 @@
 @section('heading', 'Asset Details')
 @section('subheading', $asset->asset_code)
 
-@push('styles')
-<style>
-    .detail-row{ display:flex; justify-content:space-between; padding:11px 0; border-bottom:1px dashed #EEF1F6; font-size:0.9rem; }
-    .detail-row:last-child{ border-bottom:none; }
-    .detail-row .label{ color:var(--muted); }
-    .detail-row .value{ font-weight:600; text-align:right; }
-    .qr-box{ border:1.5px dashed #E4E8F0; border-radius:14px; padding:20px; text-align:center; }
-</style>
-@endpush
-
 @section('content')
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">

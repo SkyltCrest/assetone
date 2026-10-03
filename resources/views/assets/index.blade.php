@@ -150,7 +150,13 @@
                             <td class="text-nowrap">
                                 <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Quick view" data-bs-toggle="modal" data-bs-target="#assetDetail{{ $asset->id }}"><i class="bi bi-eye"></i></button>
                                 @if($canManage)
-                                    <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-secondary" title="Update"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-secondary me-1" title="Update"><i class="bi bi-pencil-square"></i></a>
+                                    <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-inline"
+                                          onsubmit="return confirm('Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its photo, assignment, maintenance and issue history. This cannot be undone.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                    </form>
                                 @endif
                             </td>
                         </tr>

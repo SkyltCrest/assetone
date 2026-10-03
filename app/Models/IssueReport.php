@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPhotos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IssueReport extends Model
 {
-    use HasFactory;
+    use HasFactory, HasPhotos;
 
     public const STATUS_PENDING = 'pending_verification';
     public const STATUS_ACCEPTED = 'accepted';

@@ -12,10 +12,16 @@ class AssetCategory extends Model
 
     protected $fillable = [
         'code',
+        'short_code',
         'name',
         'description',
         'status',
     ];
+
+    public function types(): HasMany
+    {
+        return $this->hasMany(AssetType::class)->orderBy('name');
+    }
 
     public function assets(): HasMany
     {

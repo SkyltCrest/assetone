@@ -101,6 +101,7 @@
         if ($('themeIcon')) $('themeIcon').className = 'bi fs-6 ' + PHASES[phase].icon;
         if ($('themeAuto')) $('themeAuto').classList.toggle('d-none', themeMode !== 'auto');
         if ($('themeBtn')) $('themeBtn').title = (themeMode === 'auto' ? 'Auto · ' : 'Manual · ') + PHASES[phase].label + ' (click to change)';
+        document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.classList.toggle('active', b.dataset.themeSet === themeMode); });
         applyEye();
     }
     window.aoTheme = function () { return curPhase || phaseNow(); };
@@ -111,6 +112,9 @@
         lsSet(THEME_KEY, themeMode); applyTheme();
         showToast(themeMode === 'auto' ? 'Theme: Auto (' + PHASES[phaseNow()].label + ')' : 'Theme: ' + (themeMode === 'light' ? 'Light' : 'Dark'));
     });
+    document.querySelectorAll('[data-theme-set]').forEach(function (b) {
+        b.addEventListener('click', function () { themeMode = b.dataset.themeSet; lsSet(THEME_KEY, themeMode); applyTheme(); });
+    });
     setInterval(applyTheme, 30000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) applyTheme(); });
 
@@ -118,20 +122,25 @@
     var eye = Object.assign({ on: true, auto: true, level: 50 }, lsGet(EYE_KEY, {}));
     var AUTO_LEVEL = { light: 0, dusk: 35, dark: 60 };
     function eyeLevel() { return !eye.on ? 0 : eye.auto ? AUTO_LEVEL[curPhase || phaseNow()] : eye.level; }
+    function eyeEls(kind) { return document.querySelectorAll('[data-eye="' + kind + '"]'); }
     function applyEye() {
         var lv = eyeLevel();
         if ($('eyeShade')) $('eyeShade').style.opacity = (lv / 100 * .5).toFixed(3);
-        if (!$('eyeOn')) return;
-        $('eyeOn').checked = eye.on; $('eyeAuto').checked = eye.auto;
-        $('eyeLevel').value = lv; $('eyeLevel').disabled = !eye.on || eye.auto;
-        $('eyeVal').textContent = lv + '%';
-        $('eyeBtn').classList.toggle('active-tool', eye.on && lv > 0);
+        eyeEls('on').forEach(function (el) { el.checked = eye.on; });
+        eyeEls('auto').forEach(function (el) { el.checked = eye.auto; });
+        eyeEls('level').forEach(function (el) { el.value = lv; el.disabled = !eye.on || eye.auto; });
+        eyeEls('value').forEach(function (el) { el.textContent = lv + '%'; });
+        if ($('eyeBtn')) $('eyeBtn').classList.toggle('active-tool', eye.on && lv > 0);
     }
-    if ($('eyeOn')) {
-        $('eyeOn').addEventListener('change', function (e) { eye.on = e.target.checked; lsSet(EYE_KEY, eye); applyEye(); });
-        $('eyeAuto').addEventListener('change', function (e) { eye.auto = e.target.checked; if (!eye.auto) eye.level = eyeLevel() || 50; lsSet(EYE_KEY, eye); applyEye(); });
-        $('eyeLevel').addEventListener('input', function (e) { eye.level = +e.target.value; lsSet(EYE_KEY, eye); applyEye(); });
-    }
+    eyeEls('on').forEach(function (el) {
+        el.addEventListener('change', function (e) { eye.on = e.target.checked; lsSet(EYE_KEY, eye); applyEye(); });
+    });
+    eyeEls('auto').forEach(function (el) {
+        el.addEventListener('change', function (e) { eye.auto = e.target.checked; if (!eye.auto) eye.level = eyeLevel() || 50; lsSet(EYE_KEY, eye); applyEye(); });
+    });
+    eyeEls('level').forEach(function (el) {
+        el.addEventListener('input', function (e) { eye.level = +e.target.value; lsSet(EYE_KEY, eye); applyEye(); });
+    });
 
     /* ---------- Top-bar panels ---------- */
     function togglePanel(id) {
@@ -171,7 +180,8 @@
     });
 
     /* ---------- Scroll reveal + back-to-top + "/" focuses search ---------- */
-    if (!reduced && 'IntersectionObserver' in window) {
+    // (Skipped while the window has no height, e.g. a hidden tab, where "below the fold" cannot be judged.)
+    if (!reduced && innerHeight > 0 && 'IntersectionObserver' in window) {
         var io = new IntersectionObserver(function (es) {
             es.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add('in'); io.unobserve(x.target); } });
         }, { threshold: .08 });

@@ -18,7 +18,9 @@ class AssignmentVerificationController extends Controller
      */
     public function index(Request $request): View
     {
-        $assignments = AssetAssignment::with(['asset', 'assignedBy'])
+        $mine = fn () => AssetAssignment::where('custodian_id', $request->user()->id);
+
+        $assignments = AssetAssignment::with(['asset.photo', 'assignedBy'])
             ->where('custodian_id', $request->user()->id)
             ->orderByRaw("FIELD(status, 'pending_verification', 'assigned', 'rejected', 'unassigned')")
             ->orderByDesc('assigned_date')
@@ -26,9 +28,10 @@ class AssignmentVerificationController extends Controller
 
         return view('my-assignments.index', [
             'assignments' => $assignments,
-            'pendingCount' => AssetAssignment::where('custodian_id', $request->user()->id)
-                ->where('status', AssetAssignment::STATUS_PENDING)
-                ->count(),
+            'totalCount' => $mine()->count(),
+            'pendingCount' => $mine()->where('status', AssetAssignment::STATUS_PENDING)->count(),
+            'acceptedCount' => $mine()->where('status', AssetAssignment::STATUS_ASSIGNED)->count(),
+            'rejectedCount' => $mine()->where('status', AssetAssignment::STATUS_REJECTED)->count(),
         ]);
     }
 
@@ -39,7 +42,7 @@ class AssignmentVerificationController extends Controller
     {
         $this->authorizeCustodian($request, $assignment);
 
-        $assignment->load(['asset.category', 'asset.location', 'asset.assetStatus', 'assignedBy']);
+        $assignment->load(['asset.category', 'asset.type', 'asset.location', 'asset.assetStatus', 'asset.photo', 'assignedBy']);
 
         return view('my-assignments.show', [
             'assignment' => $assignment,
@@ -60,6 +63,7 @@ class AssignmentVerificationController extends Controller
 
             ActivityObserver::silently(fn () => $assignment->asset->update([
                 'custodian_id' => $assignment->custodian_id,
+                'assigned_date' => $assignment->assigned_date,
             ]));
         });
 
@@ -75,13 +79,15 @@ class AssignmentVerificationController extends Controller
         $this->ensurePending($assignment);
 
         $data = $request->validate([
-            'rejection_reason' => ['nullable', 'string', 'max:1000'],
+            'rejection_reason' => ['required', 'string', 'max:1000'],
+        ], [
+            'rejection_reason.required' => 'Please say why you are rejecting this assignment.',
         ]);
 
         $assignment->update([
             'status' => AssetAssignment::STATUS_REJECTED,
             'verified_at' => now(),
-            'rejection_reason' => $data['rejection_reason'] ?? null,
+            'rejection_reason' => $data['rejection_reason'],
         ]);
 
         $assignment->assignedBy?->notify(new AssignmentRejected($assignment->load('asset', 'custodian')));

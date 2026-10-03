@@ -11,7 +11,7 @@
     <p class="text-muted">Enter the details below to register a new asset.</p>
 </div>
 
-<form method="POST" action="{{ route('assets.store') }}">
+<form method="POST" action="{{ route('assets.store') }}" enctype="multipart/form-data">
     @csrf
 
     @include('assets._form')

@@ -18,6 +18,25 @@
     @endif
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Total Reports</div><h2>{{ $totalCount }}</h2></div>
+        <div class="stat-icon icon-blue"><i class="bi bi-clipboard-data"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Pending</div><h2>{{ $pendingCount }}</h2></div>
+        <div class="stat-icon icon-orange"><i class="bi bi-hourglass-split"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Under Maintenance</div><h2>{{ $maintenanceCount }}</h2></div>
+        <div class="stat-icon icon-green"><i class="bi bi-tools"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Rejected</div><h2>{{ $rejectedCount }}</h2></div>
+        <div class="stat-icon icon-red"><i class="bi bi-x-circle"></i></div>
+    </div></div>
+</div>
+
 @if($reportableAssets->isEmpty())
     <div class="alert alert-secondary d-flex align-items-center gap-2">
         <i class="bi bi-info-circle-fill"></i>
@@ -31,6 +50,7 @@
             <thead>
                 <tr>
                     <th>Report ID</th>
+                    <th>Picture</th>
                     <th>Asset</th>
                     <th>Reported On</th>
                     <th>Status</th>
@@ -42,6 +62,7 @@
                 @forelse($reports as $report)
                     <tr>
                         <td class="fw-semibold">{{ $report->report_code }}</td>
+                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo'])</td>
                         <td>
                             {{ $report->asset->asset_code ?? '—' }}
                             <span class="text-muted">{{ $report->asset->name ?? '' }}</span>
@@ -56,10 +77,10 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">
+                    <tr><td colspan="7">
                         <div class="text-center py-5">
                             <i class="bi bi-clipboard-check display-4 text-muted"></i>
-                            <h5 class="mt-3">No Issues Reported</h5>
+                            <h5 class="mt-3">No Reports Found</h5>
                             <p class="text-muted">You have not reported any issues yet.</p>
                         </div>
                     </td></tr>
@@ -82,7 +103,7 @@
                 <h5 class="modal-title fw-bold">Report an Issue</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('issues.store') }}">
+            <form method="POST" action="{{ route('issues.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
@@ -94,10 +115,14 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="mb-2">
+                    <div class="mb-3">
                         <label class="form-label">What is wrong with it? <span class="required">*</span></label>
                         <textarea name="description" class="form-control" rows="4" required
                             placeholder="Describe the damage or fault, e.g. the screen flickers and shuts down after a few minutes.">{{ old('description') }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Photos of the damage <span class="required">*</span> <span class="text-muted fw-normal">(at least 1, up to {{ $maxPhotos }})</span></label>
+                        @include('partials.photo-picker', ['name' => 'photos', 'max' => $maxPhotos, 'required' => true])
                     </div>
                     <p class="text-muted small mb-0">Your complaint will be sent to the asset officer for verification.</p>
                 </div>

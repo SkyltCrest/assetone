@@ -25,20 +25,23 @@ class IssueVerificationController extends Controller
 {
     public function index(Request $request): View
     {
-        $reports = IssueReport::with(['asset', 'reporter', 'verifier'])
+        $reports = IssueReport::with(['asset', 'reporter', 'verifier', 'photo'])
             ->orderByRaw("FIELD(status, 'pending_verification', 'accepted', 'rejected', 'resolved')")
             ->orderByDesc('created_at')
             ->paginate(10);
 
         return view('issue-verifications.index', [
             'reports' => $reports,
+            'totalCount' => IssueReport::count(),
             'pendingCount' => IssueReport::where('status', IssueReport::STATUS_PENDING)->count(),
+            'maintenanceCount' => IssueReport::where('status', IssueReport::STATUS_ACCEPTED)->count(),
+            'resolvedCount' => IssueReport::where('status', IssueReport::STATUS_RESOLVED)->count(),
         ]);
     }
 
     public function show(Request $request, IssueReport $issue): View
     {
-        $issue->load(['asset.category', 'asset.location', 'asset.assetStatus', 'asset.custodian', 'reporter', 'verifier', 'maintenance']);
+        $issue->load(['asset.category', 'asset.location', 'asset.assetStatus', 'asset.custodian', 'reporter', 'verifier', 'maintenance', 'photos']);
 
         return view('issue-verifications.show', [
             'report' => $issue,

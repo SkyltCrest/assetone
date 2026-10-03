@@ -16,6 +16,25 @@
     <p class="text-muted mb-0">Manage asset categories, locations and current asset statuses.</p>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Categories</div><h2>{{ $categoryTotal }}</h2></div>
+        <div class="stat-icon icon-blue"><i class="bi bi-tags"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Asset Types</div><h2>{{ $typeTotal }}</h2></div>
+        <div class="stat-icon icon-green"><i class="bi bi-diagram-3"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Locations</div><h2>{{ $locationTotal }}</h2></div>
+        <div class="stat-icon icon-orange"><i class="bi bi-geo-alt"></i></div>
+    </div></div>
+    <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
+        <div><div class="text-muted small text-uppercase">Statuses</div><h2>{{ $statusTotal }}</h2></div>
+        <div class="stat-icon icon-red"><i class="bi bi-clipboard-check"></i></div>
+    </div></div>
+</div>
+
 <div class="module-tabs mb-4">
     <ul class="nav nav-pills nav-fill" id="moduleTabs">
         <li class="nav-item">
@@ -65,7 +84,7 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>No.</th><th>Category ID</th><th>Category Name</th><th>Description</th><th>Total Assets</th><th>Status</th><th>Action</th>
+                            <th>No.</th><th>Category ID</th><th>Code</th><th>Category Name</th><th>Description</th><th>Asset Types</th><th>Total Assets</th><th>Status</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,8 +92,16 @@
                             <tr>
                                 <td>{{ $categories->firstItem() + $i }}</td>
                                 <td class="fw-semibold">{{ $category->code }}</td>
-                                <td>{{ $category->name }}</td>
+                                <td><span class="code-chip">{{ $category->short_code ?: '—' }}</span></td>
+                                <td class="text-dark">{{ $category->name }}</td>
                                 <td>{{ $category->description ?: 'No description' }}</td>
+                                <td>
+                                    @forelse($category->types as $type)
+                                        <span class="type-chip">{{ $type->name }} <b>{{ $type->code }}</b></span>
+                                    @empty
+                                        <span class="text-muted small">No types yet</span>
+                                    @endforelse
+                                </td>
                                 <td>{{ $category->assets_count }}</td>
                                 <td><span class="badge bg-{{ $category->status === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($category->status) }}</span></td>
                                 <td>
@@ -88,44 +115,8 @@
                                     </form>
                                 </td>
                             </tr>
-
-                            <div class="modal fade" id="editCategoryModal{{ $category->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Category</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <form method="POST" action="{{ route('categories.update', $category) }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Category Name <span class="required">*</span></label>
-                                                    <input type="text" name="name" value="{{ $category->name }}" class="form-control" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Description</label>
-                                                    <textarea name="description" class="form-control" rows="3">{{ $category->description }}</textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Status</label>
-                                                    <select name="status" class="form-select">
-                                                        <option value="active" @selected($category->status === 'active')>Active</option>
-                                                        <option value="inactive" @selected($category->status === 'inactive')>Inactive</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
-                            <tr><td colspan="7" class="text-center text-muted py-4">No categories found.</td></tr>
+                            <tr><td colspan="9" class="text-center text-muted py-4">No categories found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -165,7 +156,7 @@
                 <table class="table table-hover align-middle">
                     <thead>
                         <tr>
-                            <th>No.</th><th>Location ID</th><th>Location Name</th><th>Department</th><th>Total Assets</th><th>Status</th><th>Action</th>
+                            <th>No.</th><th>Code</th><th>Location Name</th><th>Department</th><th>Building / Floor / Room</th><th>Total Assets</th><th>Status</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -173,8 +164,9 @@
                             <tr>
                                 <td>{{ $locations->firstItem() + $i }}</td>
                                 <td class="fw-semibold">{{ $location->code }}</td>
-                                <td>{{ $location->name }}</td>
+                                <td class="text-dark">{{ $location->name }}</td>
                                 <td>{{ $location->department }}</td>
+                                <td>{{ $location->place() ?: '—' }}</td>
                                 <td>{{ $location->assets_count }}</td>
                                 <td><span class="badge bg-{{ $location->status === 'active' ? 'success' : 'secondary' }}">{{ ucfirst($location->status) }}</span></td>
                                 <td>
@@ -188,48 +180,8 @@
                                     </form>
                                 </td>
                             </tr>
-
-                            <div class="modal fade" id="editLocationModal{{ $location->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Location</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <form method="POST" action="{{ route('locations.update', $location) }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Location Name <span class="required">*</span></label>
-                                                    <input type="text" name="name" value="{{ $location->name }}" class="form-control" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Department <span class="required">*</span></label>
-                                                    <input type="text" name="department" value="{{ $location->department }}" class="form-control" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Description</label>
-                                                    <textarea name="description" class="form-control" rows="3">{{ $location->description }}</textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Status</label>
-                                                    <select name="status" class="form-select">
-                                                        <option value="active" @selected($location->status === 'active')>Active</option>
-                                                        <option value="inactive" @selected($location->status === 'inactive')>Inactive</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
-                            <tr><td colspan="7" class="text-center text-muted py-4">No locations found.</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-4">No locations found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -293,50 +245,6 @@
                                     </form>
                                 </td>
                             </tr>
-
-                            <div class="modal fade" id="editStatusModal{{ $assetStatus->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Status</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <form method="POST" action="{{ route('statuses.update', $assetStatus) }}">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Status Name <span class="required">*</span></label>
-                                                    <input type="text" name="name" value="{{ $assetStatus->name }}" class="form-control" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Description</label>
-                                                    <textarea name="description" class="form-control" rows="3">{{ $assetStatus->description }}</textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Badge Colour <span class="required">*</span></label>
-                                                    <select name="badge_color" class="form-select" required>
-                                                        @foreach($badgeColors as $value => $label)
-                                                            <option value="{{ $value }}" @selected($assetStatus->badge_color === $value)>{{ $label }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Status</label>
-                                                    <select name="status" class="form-select">
-                                                        <option value="active" @selected($assetStatus->status === 'active')>Active</option>
-                                                        <option value="inactive" @selected($assetStatus->status === 'inactive')>Inactive</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
                             <tr><td colspan="8" class="text-center text-muted py-4">No statuses found.</td></tr>
                         @endforelse
@@ -353,9 +261,106 @@
 
 </div>
 
+{{-- Edit category pop-ups --}}
+@foreach($categories as $category)
+    <div class="modal fade" id="editCategoryModal{{ $category->id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ route('categories.update', $category) }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        @include('settings._category-fields', ['category' => $category])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
+{{-- Edit location pop-ups --}}
+@foreach($locations as $location)
+    <div class="modal fade" id="editLocationModal{{ $location->id }}" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Location</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ route('locations.update', $location) }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        @include('settings._location-fields', ['location' => $location])
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
+{{-- Edit status pop-ups --}}
+@foreach($statuses as $assetStatus)
+    <div class="modal fade" id="editStatusModal{{ $assetStatus->id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ route('statuses.update', $assetStatus) }}">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Status Name <span class="required">*</span></label>
+                            <input type="text" name="name" value="{{ $assetStatus->name }}" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3">{{ $assetStatus->description }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Badge Colour <span class="required">*</span></label>
+                            <select name="badge_color" class="form-select" required>
+                                @foreach($badgeColors as $value => $label)
+                                    <option value="{{ $value }}" @selected($assetStatus->badge_color === $value)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="active" @selected($assetStatus->status === 'active')>Active</option>
+                                <option value="inactive" @selected($assetStatus->status === 'inactive')>Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
+
 {{-- Add Category Modal --}}
 <div class="modal fade" id="addCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Category</h5>
@@ -364,21 +369,7 @@
             <form method="POST" action="{{ route('categories.store') }}">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Category Name <span class="required">*</span></label>
-                        <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="Enter category name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3" placeholder="Enter category description">{{ old('description') }}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+                    @include('settings._category-fields', ['category' => null])
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -391,7 +382,7 @@
 
 {{-- Add Location Modal --}}
 <div class="modal fade" id="addLocationModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add New Location</h5>
@@ -400,25 +391,7 @@
             <form method="POST" action="{{ route('locations.store') }}">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Location Name <span class="required">*</span></label>
-                        <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="Enter location name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Department <span class="required">*</span></label>
-                        <input type="text" name="department" value="{{ old('department') }}" class="form-control" placeholder="Enter department" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea name="description" class="form-control" rows="3" placeholder="Enter location description">{{ old('description') }}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+                    @include('settings._location-fields', ['location' => null])
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -478,6 +451,32 @@
 
 @push('scripts')
 <script>
+    // Asset type rows inside the category pop-ups: add / remove, with stable field indexes.
+    document.querySelectorAll('[data-types-editor]').forEach(function (editor) {
+        var list = editor.querySelector('[data-types-list]');
+        var next = list.querySelectorAll('[data-type-row]').length;
+
+        function addRow() {
+            var i = next++;
+            var row = document.createElement('div');
+            row.className = 'row g-2 mb-2 align-items-center';
+            row.setAttribute('data-type-row', '');
+            row.innerHTML =
+                '<div class="col-7"><input type="text" name="types[' + i + '][name]" class="form-control" placeholder="Type name (e.g. Laptop)" required></div>' +
+                '<div class="col-3"><input type="text" name="types[' + i + '][code]" class="form-control text-uppercase font-monospace fw-semibold" placeholder="Code" maxlength="5" pattern="[A-Za-z0-9]{1,5}" title="1 to 5 letters or numbers" required></div>' +
+                '<div class="col-2"><button type="button" class="btn btn-outline-danger w-100" data-type-remove title="Remove type"><i class="bi bi-x-lg"></i></button></div>';
+            list.appendChild(row);
+            row.querySelector('input').focus();
+        }
+
+        editor.querySelector('[data-type-add]').addEventListener('click', addRow);
+        list.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-type-remove]');
+            if (btn && !btn.disabled) btn.closest('[data-type-row]').remove();
+        });
+        if (!next) addRow();
+    });
+
     document.getElementById('moduleTabs').addEventListener('shown.bs.tab', function (event) {
         const tabName = event.target.dataset.tabName;
         const url = new URL(window.location.href);

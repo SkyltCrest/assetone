@@ -23,7 +23,9 @@ class AssetReportController extends Controller
     private const COLUMNS = [
         'asset_code' => 'Asset ID',
         'name' => 'Asset Name',
+        'serial_number' => 'Serial Number',
         'category' => 'Category',
+        'type' => 'Asset Type',
         'location' => 'Location',
         'department' => 'Department',
         'custodian' => 'Custodian',
@@ -31,7 +33,22 @@ class AssetReportController extends Controller
         'purchase_date' => 'Purchase Date',
         'purchase_price' => 'Purchase Price',
         'supplier' => 'Supplier',
+        'po_reference' => 'PO / Reference No.',
         'warranty_expiry_date' => 'Warranty Expiry',
+    ];
+
+    /**
+     * Columns the report can be grouped by, keyed by the `group` query value.
+     *
+     * @var array<string, string>
+     */
+    private const GROUPS = [
+        'category' => 'Category',
+        'type' => 'Asset Type',
+        'location' => 'Location',
+        'department' => 'Department',
+        'custodian' => 'Custodian',
+        'status' => 'Status',
     ];
 
     /** @var list<string> */
@@ -94,7 +111,7 @@ class AssetReportController extends Controller
         $from = $request->query('purchase_from');
         $to = $request->query('purchase_to');
 
-        $assets = Asset::with(['category', 'location', 'assetStatus', 'custodian'])
+        $assets = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian'])
             ->search($search ?: null)
             ->when($categoryId, fn ($q) => $q->where('asset_category_id', $categoryId))
             ->when($locationId, fn ($q) => $q->where('asset_location_id', $locationId))
@@ -108,6 +125,11 @@ class AssetReportController extends Controller
             ->orderBy($this->sort($request), $this->dir($request))
             ->get();
 
+        // Grouping keeps the chosen sort order inside each group.
+        if ($group = $this->group($request)) {
+            $assets = $assets->sortBy(fn (Asset $asset) => $this->cell($asset, $group), SORT_NATURAL | SORT_FLAG_CASE)->values();
+        }
+
         $filters = array_filter([
             'Search' => $search ?: null,
             'Category' => $categoryId ? optional(AssetCategory::find($categoryId))->name : null,
@@ -118,6 +140,7 @@ class AssetReportController extends Controller
             'Assignment' => $assignment ? ucfirst($assignment) : null,
             'Purchased from' => $from ?: null,
             'Purchased until' => $to ?: null,
+            'Grouped by' => $group ? self::GROUPS[$group] : null,
         ]);
 
         return [$assets, $filters];
@@ -130,9 +153,24 @@ class AssetReportController extends Controller
      */
     private function viewData(Request $request, Collection $assets, array $filters): array
     {
+        $group = $this->group($request);
+
+        // Per-asset group label plus a count and value for each group heading.
+        $groupLabels = $group ? $assets->mapWithKeys(fn (Asset $a) => [$a->id => $this->cell($a, $group)]) : collect();
+        $groupSummary = $group
+            ? $assets->groupBy(fn (Asset $a) => $groupLabels[$a->id])->map(fn (Collection $items) => [
+                'count' => $items->count(),
+                'value' => $items->sum(fn (Asset $a) => (float) $a->purchase_price),
+            ])
+            : collect();
+
         return [
             'assets' => $assets,
             'filters' => $filters,
+            'group' => $group,
+            'groupOptions' => self::GROUPS,
+            'groupLabels' => $groupLabels,
+            'groupSummary' => $groupSummary,
             'allColumns' => self::COLUMNS,
             'selectedColumns' => $this->selectedColumns($request),
             'statuses' => AssetStatus::orderBy('name')->get(),
@@ -158,6 +196,13 @@ class AssetReportController extends Controller
             : 'asset_code';
     }
 
+    private function group(Request $request): ?string
+    {
+        $group = $request->query('group');
+
+        return is_string($group) && array_key_exists($group, self::GROUPS) ? $group : null;
+    }
+
     private function dir(Request $request): string
     {
         return $request->query('dir') === 'desc' ? 'desc' : 'asc';
@@ -179,7 +224,9 @@ class AssetReportController extends Controller
         return match ($column) {
             'asset_code' => (string) $asset->asset_code,
             'name' => (string) $asset->name,
+            'serial_number' => $asset->serial_number ?? '-',
             'category' => $asset->category->name ?? '-',
+            'type' => $asset->type->name ?? '-',
             'location' => $asset->location->name ?? $asset->location_detail ?? '-',
             'department' => $asset->department ?? '-',
             'custodian' => $asset->custodian->name ?? 'Unassigned',
@@ -187,6 +234,7 @@ class AssetReportController extends Controller
             'purchase_date' => optional($asset->purchase_date)->format('Y-m-d') ?? '-',
             'purchase_price' => $asset->purchase_price !== null ? number_format((float) $asset->purchase_price, 2, '.', '') : '',
             'supplier' => $asset->supplier ?? '-',
+            'po_reference' => $asset->po_reference ?? '-',
             'warranty_expiry_date' => optional($asset->warranty_expiry_date)->format('Y-m-d') ?? '-',
             default => '',
         };

@@ -6,8 +6,10 @@ use App\Models\Asset;
 use App\Models\IssueReport;
 use App\Models\User;
 use App\Notifications\IssueReported;
+use App\Services\PhotoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
 
@@ -19,9 +21,16 @@ use Illuminate\View\View;
  */
 class IssueReportController extends Controller
 {
+    /** Most damage photos a single report may carry. */
+    public const MAX_PHOTOS = 4;
+
+    public function __construct(private readonly PhotoService $photoService) {}
+
     public function index(Request $request): View
     {
-        $reports = IssueReport::with(['asset', 'verifier'])
+        $mine = fn () => IssueReport::where('reported_by', $request->user()->id);
+
+        $reports = IssueReport::with(['asset', 'verifier', 'photo'])
             ->where('reported_by', $request->user()->id)
             ->orderByRaw("FIELD(status, 'pending_verification', 'accepted', 'rejected', 'resolved')")
             ->orderByDesc('created_at')
@@ -30,9 +39,11 @@ class IssueReportController extends Controller
         return view('issues.index', [
             'reports' => $reports,
             'reportableAssets' => $this->reportableAssets($request),
-            'openCount' => IssueReport::where('reported_by', $request->user()->id)
-                ->whereIn('status', [IssueReport::STATUS_PENDING, IssueReport::STATUS_ACCEPTED])
-                ->count(),
+            'totalCount' => $mine()->count(),
+            'pendingCount' => $mine()->where('status', IssueReport::STATUS_PENDING)->count(),
+            'maintenanceCount' => $mine()->where('status', IssueReport::STATUS_ACCEPTED)->count(),
+            'rejectedCount' => $mine()->where('status', IssueReport::STATUS_REJECTED)->count(),
+            'maxPhotos' => self::MAX_PHOTOS,
         ]);
     }
 
@@ -43,17 +54,29 @@ class IssueReportController extends Controller
         $data = $request->validate([
             'asset_id' => ['required', 'integer', 'in:'.$reportable->pluck('id')->implode(',')],
             'description' => ['required', 'string', 'max:2000'],
+            'photos' => ['required', 'array', 'min:1', 'max:'.self::MAX_PHOTOS],
+            'photos.*' => PhotoService::RULES,
         ], [
             'asset_id.in' => 'You can only report an issue for an asset assigned to you.',
+            'photos.required' => 'Please add at least one photo of the damage.',
+            'photos.max' => 'You can attach up to '.self::MAX_PHOTOS.' photos.',
         ]);
 
-        $report = IssueReport::create([
-            'report_code' => IssueReport::nextCode(),
-            'asset_id' => $data['asset_id'],
-            'reported_by' => $request->user()->id,
-            'description' => $data['description'],
-            'status' => IssueReport::STATUS_PENDING,
-        ]);
+        $report = DB::transaction(function () use ($data, $request) {
+            $report = IssueReport::create([
+                'report_code' => IssueReport::nextCode(),
+                'asset_id' => $data['asset_id'],
+                'reported_by' => $request->user()->id,
+                'description' => $data['description'],
+                'status' => IssueReport::STATUS_PENDING,
+            ]);
+
+            foreach ($request->file('photos') as $file) {
+                $this->photoService->attach($report, $file, 'photos');
+            }
+
+            return $report;
+        });
 
         $this->notifyOfficers($report);
 
@@ -66,7 +89,7 @@ class IssueReportController extends Controller
         abort_unless($issue->reported_by === $request->user()->id, 403,
             'This report was submitted by someone else.');
 
-        $issue->load(['asset.category', 'asset.assetStatus', 'verifier', 'maintenance']);
+        $issue->load(['asset.category', 'asset.assetStatus', 'verifier', 'maintenance', 'photos']);
 
         return view('issues.show', ['report' => $issue]);
     }

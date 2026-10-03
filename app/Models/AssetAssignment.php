@@ -21,16 +21,22 @@ class AssetAssignment extends Model
         'assigned_by',
         'department',
         'assigned_date',
+        'loan_days',
+        'due_date',
+        'returned_date',
         'status',
         'verified_at',
         'rejection_reason',
         'notes',
+        'return_note',
     ];
 
     protected function casts(): array
     {
         return [
             'assigned_date' => 'date',
+            'due_date' => 'date',
+            'returned_date' => 'date',
             'verified_at' => 'datetime',
         ];
     }
@@ -56,10 +62,34 @@ class AssetAssignment extends Model
     }
 
     /**
+     * An accepted assignment that is still out past its due date.
+     */
+    public function isOverdue(): bool
+    {
+        return $this->status === self::STATUS_ASSIGNED
+            && $this->due_date !== null
+            && $this->due_date->isBefore(today());
+    }
+
+    /**
+     * Assignments that are out past their due date.
+     */
+    public function scopeOverdue($query)
+    {
+        return $query->where('status', self::STATUS_ASSIGNED)
+            ->whereNotNull('due_date')
+            ->whereDate('due_date', '<', today());
+    }
+
+    /**
      * Human-readable label for the current status.
      */
     public function statusLabel(): string
     {
+        if ($this->isOverdue()) {
+            return 'Overdue';
+        }
+
         return match ($this->status) {
             self::STATUS_PENDING => 'Pending Verification',
             self::STATUS_ASSIGNED => 'Assigned',
@@ -74,6 +104,10 @@ class AssetAssignment extends Model
      */
     public function statusColor(): string
     {
+        if ($this->isOverdue()) {
+            return 'danger';
+        }
+
         return match ($this->status) {
             self::STATUS_PENDING => 'warning',
             self::STATUS_ASSIGNED => 'success',

@@ -9,6 +9,15 @@
     @case('name')
         {{ $asset->name }}
         @break
+    @case('serial_number')
+        {{ $asset->serial_number ?? '—' }}
+        @break
+    @case('type')
+        {{ $asset->type->name ?? '—' }}
+        @break
+    @case('po_reference')
+        {{ $asset->po_reference ?? '—' }}
+        @break
     @case('category')
         {{ $asset->category->name ?? '—' }}
         @break

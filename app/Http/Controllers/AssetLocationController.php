@@ -18,6 +18,9 @@ class AssetLocationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'department' => ['required', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'floor' => ['nullable', 'string', 'max:255'],
+            'room' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:active,inactive'],
         ]);
@@ -34,6 +37,9 @@ class AssetLocationController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'department' => ['required', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'floor' => ['nullable', 'string', 'max:255'],
+            'room' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:active,inactive'],
         ]);

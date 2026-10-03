@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AssetAssignmentController;
 use App\Http\Controllers\AssignmentVerificationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\AssetCategoryController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AssetLocationController;
@@ -48,9 +49,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     // Temporary landing page, until the real dashboard is built
     Route::get('home', [HomeController::class, 'index'])->name('home');
 
+    // Uploaded pictures (asset photos, damage photos, profile pictures)
+    Route::get('photos/{photo}', [PhotoController::class, 'show'])->name('photos.show');
+
     // Asset registration (admin, asset officer)
     Route::middleware('role:administrator,asset_officer')->group(function () {
         Route::get('assets/create', [AssetController::class, 'create'])->name('assets.create');
+        Route::get('assets/next-code', [AssetController::class, 'nextCodePreview'])->name('assets.next-code');
         Route::post('assets', [AssetController::class, 'store'])->name('assets.store');
         Route::get('assets/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
         Route::put('assets/{asset}', [AssetController::class, 'update'])->name('assets.update');
@@ -67,6 +72,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('assignments', [AssetAssignmentController::class, 'index'])->name('assignments.index');
         Route::post('assignments', [AssetAssignmentController::class, 'store'])->name('assignments.store');
         Route::put('assignments/{assignment}', [AssetAssignmentController::class, 'update'])->name('assignments.update');
+        Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');
         Route::delete('assignments/{assignment}', [AssetAssignmentController::class, 'destroy'])->name('assignments.destroy');
     });
 
@@ -93,6 +99,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // Asset maintenance (admin, asset officer)
     Route::middleware('role:administrator,asset_officer')->group(function () {
@@ -111,6 +119,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('settings', [AccountSettingsController::class, 'index'])->name('settings.index');
     Route::put('settings/profile', [AccountSettingsController::class, 'updateProfile'])->name('settings.profile.update');
     Route::put('settings/password', [AccountSettingsController::class, 'updatePassword'])->name('settings.password.update');
+    Route::delete('settings/photo', [AccountSettingsController::class, 'removePhoto'])->name('settings.photo.destroy');
 
     // Categories, locations, statuses (admin, asset officer)
     Route::middleware('role:administrator,asset_officer')->group(function () {

@@ -7,6 +7,8 @@ use App\Models\AssetMaintenance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\CsvExport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class AssetMaintenanceController extends Controller
@@ -25,24 +27,52 @@ class AssetMaintenanceController extends Controller
         'cancelled' => 'Cancelled',
     ];
 
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $search = $request->query('search');
         $status = $request->query('status');
         $type = $request->query('type');
+        $sort = (string) $request->query('sort', '');
+        $dir = $request->query('dir') === 'desc' ? 'desc' : 'asc';
         $perPage = in_array((int) $request->query('per_page'), [5, 10, 25, 50], true) ? (int) $request->query('per_page') : 10;
 
-        $maintenances = AssetMaintenance::with('asset.photo')
+        $query = AssetMaintenance::with('asset.photo')
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('maintenance_code', 'like', "%{$search}%")
                 ->orWhereHas('asset', fn ($q3) => $q3->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))))
             ->when($status === 'overdue', fn ($q) => $q->overdue())
             ->when($status && $status !== 'overdue', fn ($q) => $q->where('status', $status))
             ->when($type, fn ($q) => $q->where('type', $type))
+            ->when($sort === 'code', fn ($q) => $q->orderBy('maintenance_code', $dir))
+            ->when($sort === 'asset', fn ($q) => $q->orderBy(Asset::select('asset_code')->whereColumn('assets.id', 'asset_maintenances.asset_id'), $dir))
+            ->when($sort === 'name', fn ($q) => $q->orderBy(Asset::select('name')->whereColumn('assets.id', 'asset_maintenances.asset_id'), $dir))
+            ->when($sort === 'type', fn ($q) => $q->orderBy('type', $dir))
+            ->when($sort === 'date', fn ($q) => $q->orderBy('maintenance_date', $dir))
+            ->when($sort === 'next', fn ($q) => $q->orderBy('next_maintenance_date', $dir))
+            ->when($sort === 'status', fn ($q) => $q->orderBy('status', $dir))
             ->orderByDesc('maintenance_date')
-            ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderByDesc('id');
+
+        // Export every record that matches the filters, not just the page on screen.
+        if ($request->boolean('export')) {
+            return CsvExport::download('asset-maintenance',
+                ['Maintenance ID', 'Asset ID', 'Asset Name', 'Type', 'Maintenance Date', 'Next Maintenance', 'Service Provider', 'Cost (RM)', 'Status', 'Due Status', 'Notes'],
+                $query->get()->map(fn (AssetMaintenance $m) => [
+                    $m->maintenance_code,
+                    $m->asset->asset_code ?? '',
+                    $m->asset->name ?? '',
+                    self::TYPES[$m->type] ?? $m->type,
+                    $m->maintenance_date->format('Y-m-d'),
+                    optional($m->next_maintenance_date)->format('Y-m-d'),
+                    $m->service_provider,
+                    $m->cost,
+                    self::STATUSES[$m->status] ?? $m->status,
+                    $m->dueStatus()[0],
+                    $m->description,
+                ]));
+        }
+
+        $maintenances = $query->paginate($perPage)->withQueryString();
 
         // Open records with a next maintenance date, nearest (or most overdue) first.
         $upcoming = AssetMaintenance::with('asset')
@@ -59,6 +89,8 @@ class AssetMaintenanceController extends Controller
             'status' => $status,
             'type' => $type,
             'perPage' => $perPage,
+            'sort' => $sort,
+            'dir' => $dir,
             'chips' => [
                 '' => ['All', AssetMaintenance::count()],
                 'pending' => ['Pending', AssetMaintenance::where('status', 'pending')->count()],

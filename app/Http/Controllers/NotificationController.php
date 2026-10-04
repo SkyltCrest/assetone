@@ -23,12 +23,15 @@ class NotificationController extends Controller
         'alert' => ['Alert', 'bi-exclamation-triangle'],
     ];
 
+    /** The page, its counts and the export look at this many of the newest notifications. */
+    private const MAX_ROWS = 2000;
+
     private const PERIODS = ['today' => 'Today', '7' => 'Last 7 days', '30' => 'Last 30 days'];
 
     public function index(Request $request): View
     {
         $user = $request->user();
-        $all = $this->describe($user->notifications()->get());
+        $all = $this->describe($user->notifications()->limit(self::MAX_ROWS)->get());
         $filtered = $this->filter($all, $request);
 
         $page = max(1, (int) $request->query('page', 1));
@@ -68,7 +71,7 @@ class NotificationController extends Controller
      */
     public function export(Request $request): StreamedResponse
     {
-        $rows = $this->filter($this->describe($request->user()->notifications()->get()), $request);
+        $rows = $this->filter($this->describe($request->user()->notifications()->limit(self::MAX_ROWS)->get()), $request);
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');

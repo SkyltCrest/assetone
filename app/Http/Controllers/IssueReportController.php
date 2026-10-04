@@ -41,7 +41,7 @@ class IssueReportController extends Controller
                 ->orWhere('description', 'like', "%{$search}%")
                 ->orWhereHas('asset', fn ($a) => $a->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))))
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderByRaw("FIELD(status, 'pending_verification', 'accepted', 'rejected', 'resolved')")
+            ->orderByRaw("CASE status WHEN 'pending_verification' THEN 0 WHEN 'accepted' THEN 1 WHEN 'rejected' THEN 2 WHEN 'resolved' THEN 3 ELSE 4 END")
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();

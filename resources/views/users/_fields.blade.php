@@ -26,9 +26,11 @@
         @if($user)
             <label class="form-label">New Password</label>
             <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current password" autocomplete="new-password">
+            <div class="form-text">If changed: at least 8 characters, with upper and lower case letters, a number and a special character.</div>
         @else
             <label class="form-label">Password <span class="required">*</span></label>
             <input type="password" name="password" class="form-control" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required>
+            <div class="form-text">At least 8 characters, with upper and lower case letters, a number and a special character.</div>
         @endif
     </div>
     <div class="col-md-6">

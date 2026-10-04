@@ -13,6 +13,8 @@
     // Types per category, for the dependent "Asset Type" dropdown.
     $typesByCategory = $categories->mapWithKeys(fn ($c) => [$c->id => $c->types->map->only(['id', 'name', 'code'])->values()]);
     // Locations per department, for the dependent "Asset Location" dropdown.
+    // Shown when a department has no location of its own, so registration is never blocked.
+    $allLocations = $locations->map(fn ($l) => ['id' => $l->id, 'label' => $l->name.($l->code ? ' ('.$l->code.')' : '').($l->department ? ' — '.$l->department : '')])->values();
     $locationsByDepartment = $locations->groupBy('department')->map(fn ($group) => $group->map(fn ($l) => ['id' => $l->id, 'label' => $l->name.($l->code ? ' ('.$l->code.')' : '')])->values());
 @endphp
 
@@ -142,8 +144,8 @@
                     @error('department')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="assetLocation">Asset Location <span class="required">*</span></label>
-                    <select id="assetLocation" name="asset_location_id" class="form-select @error('asset_location_id') is-invalid @enderror" data-selected="{{ $selectedLocation ?: '' }}" required>
+                    <label class="form-label" for="assetLocation">Asset Location @unless($asset->exists)<span class="required">*</span>@endunless</label>
+                    <select id="assetLocation" name="asset_location_id" class="form-select @error('asset_location_id') is-invalid @enderror" data-selected="{{ $selectedLocation ?: '' }}" @unless($asset->exists) required @endunless>
                         <option value="">Select department first</option>
                     </select>
                     <div class="form-text">Physical location of the asset. Locations are managed in <a href="{{ route('asset-management.index', ['tab' => 'location']) }}" target="_blank">Asset Management</a>.</div>
@@ -160,9 +162,9 @@
             </div>
             <div class="row g-4">
                 <div class="col-md-6">
-                    <label class="form-label" for="custodian">Person in Charge (PIC) <span class="required">*</span></label>
-                    <select id="custodian" name="custodian_id" class="form-select @error('custodian_id') is-invalid @enderror" required>
-                        <option value="" @selected(! old('custodian_id', $asset->custodian_id)) disabled>Select PIC</option>
+                    <label class="form-label" for="custodian">Person in Charge (PIC) @unless($asset->exists)<span class="required">*</span>@endunless</label>
+                    <select id="custodian" name="custodian_id" class="form-select @error('custodian_id') is-invalid @enderror" @unless($asset->exists) required @endunless>
+                        <option value="" @selected(! old('custodian_id', $asset->custodian_id)) @unless($asset->exists) disabled @endunless>{{ $asset->exists ? 'No custodian' : 'Select PIC' }}</option>
                         @foreach($custodians as $custodian)
                             <option value="{{ $custodian->id }}" data-name="{{ $custodian->name }}" @selected((int) old('custodian_id', $asset->custodian_id) === $custodian->id)>{{ $custodian->name }} - {{ ucwords(str_replace('_', ' ', $custodian->role)) }}{{ $custodian->department ? ' ('.str_replace(' Department', '', $custodian->department).')' : '' }}</option>
                         @endforeach
@@ -228,6 +230,7 @@
     var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     var typesByCategory = @json($typesByCategory);
     var locationsByDepartment = @json($locationsByDepartment);
+    var allLocations = @json($allLocations);
 
     var form = $('assetName').form, category = $('assetCategory'), type = $('assetType'), code = $('assetCode'),
         purchase = $('purchaseDate'), department = $('department'), location = $('assetLocation'),
@@ -247,9 +250,11 @@
 
     /* ---------- Department -> Location ---------- */
     function fillLocations() {
-        var list = locationsByDepartment[department.value] || [], wanted = location.dataset.selected;
+        var own = locationsByDepartment[department.value] || [], wanted = location.dataset.selected;
+        // A department without its own locations may use any registered location.
+        var list = !department.value ? [] : own.length ? own : allLocations;
         location.innerHTML = '';
-        location.add(new Option(department.value ? (list.length ? 'Select asset location' : 'No locations for this department yet') : 'Select department first', ''));
+        location.add(new Option(department.value ? (list.length ? (own.length ? 'Select asset location' : 'Select asset location (all locations)') : 'No locations registered yet') : 'Select department first', ''));
         list.forEach(function (l) { location.add(new Option(l.label, l.id, false, String(l.id) === String(wanted))); });
         location.disabled = !list.length;
     }

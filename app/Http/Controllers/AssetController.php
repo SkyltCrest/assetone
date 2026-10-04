@@ -17,6 +17,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use App\Support\CsvExport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class AssetController extends Controller
@@ -39,7 +41,7 @@ class AssetController extends Controller
     /**
      * List and filter assets.
      */
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $search = $request->query('search');
         $categoryId = $request->query('category');
@@ -50,7 +52,7 @@ class AssetController extends Controller
         $purchaseTo = $request->query('purchase_to');
         $sort = array_key_exists($request->query('sort'), self::SORTS) ? $request->query('sort') : '';
 
-        $assets = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian', 'photo'])
+        $query = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian', 'photo'])
             ->search($search)
             ->when($categoryId, fn ($q) => $q->where('asset_category_id', $categoryId))
             ->when($locationId, fn ($q) => $q->where('asset_location_id', $locationId))
@@ -62,9 +64,29 @@ class AssetController extends Controller
             ->when($sort === 'category', fn ($q) => $q->orderBy(AssetCategory::select('name')->whereColumn('asset_categories.id', 'assets.asset_category_id')))
             ->when($sort === 'status', fn ($q) => $q->orderBy(AssetStatus::select('name')->whereColumn('asset_statuses.id', 'assets.asset_status_id')))
             ->when($sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))
-            ->orderBy('asset_code')
-            ->paginate(10)
-            ->withQueryString();
+            ->orderBy('asset_code');
+
+        // Export every asset that matches the filters, not just the page on screen.
+        if ($request->boolean('export')) {
+            return CsvExport::download('asset-overview',
+                ['Asset Code', 'Asset Name', 'Category', 'Type', 'Serial Number', 'Department', 'Location', 'Custodian', 'Status', 'Purchase Date', 'Purchase Price (RM)', 'Warranty Expiry'],
+                $query->get()->map(fn (Asset $a) => [
+                    $a->asset_code,
+                    $a->name,
+                    $a->category->name ?? '',
+                    $a->type->name ?? '',
+                    $a->serial_number,
+                    $a->department,
+                    $a->location->name ?? $a->location_detail,
+                    $a->custodian->name ?? 'Unassigned',
+                    $a->assetStatus->name ?? '',
+                    optional($a->purchase_date)->format('Y-m-d'),
+                    $a->purchase_price,
+                    optional($a->warranty_expiry_date)->format('Y-m-d'),
+                ]));
+        }
+
+        $assets = $query->paginate(10)->withQueryString();
 
         return view('assets.index', [
             'assets' => $assets,
@@ -107,7 +129,7 @@ class AssetController extends Controller
         $asset = DB::transaction(function () use ($data, $request) {
             $data['asset_code'] = $this->nextCode(AssetType::findOrFail($data['asset_type_id']), $data['purchase_date']);
             $asset = Asset::create($data);
-            $this->photoService->attach($asset, $request->file('photo'));
+            $this->photoService->attach($asset, $request->file('photo'), crop: PhotoService::ASSET_FRAME);
 
             return $asset;
         });
@@ -138,7 +160,7 @@ class AssetController extends Controller
             $asset->update($data);
 
             if ($request->hasFile('photo')) {
-                $this->photoService->replace($asset, $request->file('photo'));
+                $this->photoService->replace($asset, $request->file('photo'), crop: PhotoService::ASSET_FRAME);
             }
         });
 
@@ -235,20 +257,21 @@ class AssetController extends Controller
             'po_reference' => ['nullable', 'string', 'max:255'],
             'warranty_expiry_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
             'department' => ['required', 'string', 'max:255'],
-            'asset_location_id' => ['required', Rule::exists('asset_locations', 'id')->where('department', $request->input('department'))],
-            'custodian_id' => ['required', 'exists:users,id'],
+            // Compulsory for a new asset; an older record may be saved without them.
+            'asset_location_id' => [$asset->exists ? 'nullable' : 'required', 'exists:asset_locations,id'],
+            'custodian_id' => [$asset->exists ? 'nullable' : 'required', 'exists:users,id'],
             'assigned_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
             'asset_status_id' => ['required', 'exists:asset_statuses,id'],
             // A picture is compulsory, but an asset that already has one may keep it.
-            'photo' => [$asset->exists && $asset->photo ? 'nullable' : 'required', ...PhotoService::RULES],
+            'photo' => [$asset->exists && $asset->photo ? 'nullable' : 'required', ...PhotoService::ASSET_RULES],
         ], [
             'serial_number.unique' => 'This serial number is already registered to another asset.',
             'asset_type_id.exists' => 'Choose an asset type that belongs to the selected category.',
             'warranty_expiry_date.after_or_equal' => 'Warranty expiry date cannot be earlier than the purchase date.',
             'assigned_date.after_or_equal' => 'Assigned date cannot be earlier than the purchase date.',
             'photo.required' => 'Please add a photo of the asset.',
+            'photo.max' => 'Photo size must not exceed 5MB.',
             'asset_location_id.required' => 'Please select the asset location.',
-            'asset_location_id.exists' => 'Choose a location that belongs to the selected department.',
             'custodian_id.required' => 'Please select the PIC.',
             'description.max' => 'The description may not be longer than 500 characters.',
         ]);
@@ -256,8 +279,14 @@ class AssetController extends Controller
         unset($data['photo']);
 
         // The free-text location follows the chosen location record.
-        $place = AssetLocation::find($data['asset_location_id']);
-        $data['location_detail'] = $place ? trim($place->name.($place->place() ? ', '.$place->place() : '')) : '';
+        $place = ! empty($data['asset_location_id']) ? AssetLocation::find($data['asset_location_id']) : null;
+        $data['location_detail'] = $place
+            ? trim($place->name.($place->place() ? ', '.$place->place() : ''))
+            : ($asset->location_detail ?: $data['department']);
+
+        if (empty($data['custodian_id'])) {
+            $data['assigned_date'] = null;
+        }
 
         // A custodian without a date is taken to have received the asset today.
         if (! empty($data['custodian_id']) && empty($data['assigned_date'])) {

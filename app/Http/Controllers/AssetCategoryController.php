@@ -82,15 +82,29 @@ class AssetCategoryController extends Controller
                 ->all(),
         ]);
 
-        return $request->validate([
+        // Codes already in use may contain digits; only new or changed codes must be letters.
+        $knownTypeCodes = $category ? $category->types()->pluck('code', 'id')->map(fn ($code) => strtoupper((string) $code))->all() : [];
+        $lettersOnly = function (?string $current) {
+            return function (string $attribute, mixed $value, \Closure $fail) use ($current) {
+                if ($value !== $current && ! preg_match('/^[A-Za-z]+$/', (string) $value)) {
+                    $fail('Codes must contain letters only (A-Z).');
+                }
+            };
+        };
+
+        $typeRules = [];
+        foreach ($request->input('types', []) as $i => $type) {
+            $typeRules["types.{$i}.code"] = ['required', 'max:5', 'distinct:ignore_case', $lettersOnly($knownTypeCodes[(int) ($type['id'] ?? 0)] ?? null)];
+        }
+
+        return $request->validate($typeRules + [
             'name' => ['required', 'string', 'max:255'],
-            'short_code' => ['required', 'alpha', 'max:5', Rule::unique('asset_categories', 'short_code')->ignore($category?->id)],
+            'short_code' => ['required', 'max:5', $lettersOnly($category ? strtoupper((string) $category->short_code) : null), Rule::unique('asset_categories', 'short_code')->ignore($category?->id)],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:active,inactive'],
             'types' => ['required', 'array', 'min:1'],
             'types.*.id' => ['nullable', 'integer'],
             'types.*.name' => ['required', 'string', 'max:255', 'distinct:ignore_case'],
-            'types.*.code' => ['required', 'alpha', 'max:5', 'distinct:ignore_case'],
         ], [
             'short_code.unique' => 'That category code is already used by another category.',
             'types.required' => 'Add at least one asset type.',

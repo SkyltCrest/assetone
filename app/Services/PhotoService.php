@@ -22,12 +22,18 @@ class PhotoService
     /** Validation rules for a single uploaded picture. */
     public const RULES = ['image', 'mimes:jpg,jpeg,png,webp', 'max:8192'];
 
+    /** Asset pictures: at most 5MB, stored in a fixed 4:3 frame. */
+    public const ASSET_RULES = ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'];
+
+    /** @var array{0: int, 1: int} width, height */
+    public const ASSET_FRAME = [800, 600];
+
     /**
      * Attach a new picture to the given record.
      */
-    public function attach(Model $owner, UploadedFile $file, string $field = 'photo'): Photo
+    public function attach(Model $owner, UploadedFile $file, string $field = 'photo', ?array $crop = null): Photo
     {
-        [$bytes, $mime] = $this->prepare($file);
+        [$bytes, $mime] = $this->prepare($file, $crop);
 
         $encoded = base64_encode($bytes);
         $this->ensureFits($encoded, $field);
@@ -42,10 +48,10 @@ class PhotoService
     /**
      * Replace every picture on the record with a single new one.
      */
-    public function replace(Model $owner, UploadedFile $file, string $field = 'photo'): Photo
+    public function replace(Model $owner, UploadedFile $file, string $field = 'photo', ?array $crop = null): Photo
     {
-        return DB::transaction(function () use ($owner, $file, $field) {
-            $photo = $this->attach($owner, $file, $field);
+        return DB::transaction(function () use ($owner, $file, $field, $crop) {
+            $photo = $this->attach($owner, $file, $field, $crop);
             Photo::where('photoable_type', $owner->getMorphClass())
                 ->where('photoable_id', $owner->getKey())
                 ->where('id', '!=', $photo->id)
@@ -58,7 +64,7 @@ class PhotoService
     /**
      * @return array{0: string, 1: string}  [image bytes, mime type]
      */
-    private function prepare(UploadedFile $file): array
+    private function prepare(UploadedFile $file, ?array $crop = null): array
     {
         $bytes = file_get_contents($file->getRealPath());
         $mime = $file->getMimeType() ?: 'image/jpeg';
@@ -74,6 +80,24 @@ class PhotoService
 
         $width = imagesx($image);
         $height = imagesy($image);
+
+        // A fixed frame: scale the picture to cover it, then keep the centre.
+        if ($crop) {
+            [$frameW, $frameH] = $crop;
+            $cover = max($frameW / $width, $frameH / $height);
+            $srcW = (int) round($frameW / $cover);
+            $srcH = (int) round($frameH / $cover);
+
+            $canvas = imagecreatetruecolor($frameW, $frameH);
+            imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+            imagecopyresampled($canvas, $image, 0, 0, (int) (($width - $srcW) / 2), (int) (($height - $srcH) / 2), $frameW, $frameH, $srcW, $srcH);
+
+            ob_start();
+            imagejpeg($canvas, null, 85);
+
+            return [ob_get_clean(), 'image/jpeg'];
+        }
+
         $scale = min(1, self::MAX_SIDE / max($width, $height));
 
         if ($scale < 1) {

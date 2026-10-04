@@ -123,7 +123,7 @@
                     <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            <button type="button" class="btn btn-secondary" data-export="asset-overview"><i class="bi bi-download me-2"></i>Export CSV</button>
+            <a href="{{ request()->fullUrlWithQuery(['export' => 1, 'page' => null]) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
             <div class="seg">
                 <button type="button" data-view-btn="table" title="Table view"><i class="bi bi-list-ul"></i></button>
                 <button type="button" data-view-btn="cards" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>

@@ -97,7 +97,7 @@
                 <button type="button" data-view="table" title="Table view"><i class="bi bi-list-ul"></i></button>
                 <button type="button" data-view="board" title="Board view" data-key="b"><i class="bi bi-kanban"></i></button>
             </div>
-            <button type="button" class="btn btn-secondary" data-export="asset-maintenance"><i class="bi bi-download me-2"></i>Export CSV</button>
+            <a href="{{ request()->fullUrlWithQuery(['export' => 1, 'page' => null]) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
         </div>
     </div>
 

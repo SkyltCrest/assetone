@@ -11,25 +11,45 @@ use App\Observers\ActivityObserver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Support\CsvExport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class AssetAssignmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $search = $request->query('search');
         $status = $request->query('status');
 
-        $assignments = AssetAssignment::with(['asset.photo', 'asset.assignments.custodian', 'custodian'])
+        $query = AssetAssignment::with(['asset.photo', 'asset.assignments.custodian', 'custodian'])
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
                 ->whereHas('asset', fn ($q3) => $q3->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))
                 ->orWhereHas('custodian', fn ($q3) => $q3->where('name', 'like', "%{$search}%"))))
             ->when($status === 'overdue', fn ($q) => $q->overdue())
             ->when($status && $status !== 'overdue', fn ($q) => $q->where('status', $status))
             ->orderByDesc('assigned_date')
-            ->orderByDesc('id')
-            ->paginate(10)
-            ->withQueryString();
+            ->orderByDesc('id');
+
+        // Export every record that matches the filters, not just the page on screen.
+        if ($request->boolean('export')) {
+            return CsvExport::download('asset-assignments',
+                ['Asset Code', 'Asset Name', 'PIC', 'Role', 'Department', 'Assigned Date', 'Due Date', 'Returned Date', 'Status', 'Note'],
+                $query->get()->map(fn (AssetAssignment $a) => [
+                    $a->asset->asset_code ?? '',
+                    $a->asset->name ?? '',
+                    $a->custodian->name ?? '',
+                    $a->custodian ? ucwords(str_replace('_', ' ', $a->custodian->role)) : '',
+                    $a->department,
+                    $a->assigned_date->format('Y-m-d'),
+                    optional($a->due_date)->format('Y-m-d'),
+                    optional($a->returned_date)->format('Y-m-d'),
+                    $a->isOverdue() ? 'Overdue' : $a->statusLabel(),
+                    $a->return_note ?: $a->notes,
+                ]));
+        }
+
+        $assignments = $query->paginate(10)->withQueryString();
 
         $counts = [
             'all' => AssetAssignment::count(),
@@ -75,21 +95,6 @@ class AssetAssignmentController extends Controller
         $data = $this->validated($request, requireLoan: true);
 
         $asset = Asset::findOrFail($data['asset_id']);
-        $newHolder = User::findOrFail($data['custodian_id']);
-
-        // Reassigning: close whoever currently holds the asset.
-        AssetAssignment::where('asset_id', $asset->id)
-            ->where('status', AssetAssignment::STATUS_ASSIGNED)
-            ->get()
-            ->each(function (AssetAssignment $current) use ($newHolder) {
-                $current->update([
-                    'status' => AssetAssignment::STATUS_UNASSIGNED,
-                    'returned_date' => today(),
-                    'return_note' => 'Reassigned to '.$newHolder->name,
-                ]);
-                $this->syncAssetCustodian($current);
-            });
-
         $assignment = AssetAssignment::create([
             'asset_id' => $asset->id,
             'custodian_id' => $data['custodian_id'],

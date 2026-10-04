@@ -62,7 +62,7 @@
                class="chip {{ $value === 'overdue' ? 'chip-overdue' : '' }} {{ (string) $status === (string) $value ? 'active' : '' }}">{{ $label }}<b>{{ $count }}</b></a>
         @endforeach
         <div class="chip-tools">
-            <button type="button" class="btn btn-secondary" data-export="asset-assignments"><i class="bi bi-download me-2"></i>Export CSV</button>
+            <a href="{{ request()->fullUrlWithQuery(['export' => 1, 'page' => null]) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
         </div>
     </div>
 
@@ -144,13 +144,20 @@
                                     </form>
                                 @endif
                             @endif
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#historyModal{{ $assignment->id }}" title="History"><i class="bi bi-clock-history"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editAssignmentModal{{ $assignment->id }}" title="Edit"><i class="bi bi-pencil"></i></button>
-                            <form method="POST" action="{{ route('assignments.destroy', $assignment) }}" class="d-inline" data-confirm="Delete this assignment?">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
-                            </form>
+                            <div class="dropdown d-inline-block">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="More actions" aria-label="More actions"><i class="bi bi-three-dots-vertical"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#historyModal{{ $assignment->id }}"><i class="bi bi-clock-history me-2"></i>History</button></li>
+                                    <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editAssignmentModal{{ $assignment->id }}"><i class="bi bi-pencil me-2"></i>Edit</button></li>
+                                    <li>
+                                        <form method="POST" action="{{ route('assignments.destroy', $assignment) }}" class="m-0" data-confirm="Delete this assignment?">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash me-2"></i>Delete</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -341,7 +348,7 @@
                     </div>
                     <div class="alert alert-info py-2 px-3 small mb-0">
                         <i class="bi bi-info-circle me-1"></i>The assignment will be marked <strong>Pending Verification</strong> and the staff member will be notified to accept or reject it.
-                        <span id="reassignNote" class="d-none">The current holder's record is closed as returned.</span>
+                        <span id="reassignNote" class="d-none">The current holder keeps the asset until the new person accepts; their record is then closed as returned.</span>
                     </div>
                 </div>
                 <div class="modal-footer">

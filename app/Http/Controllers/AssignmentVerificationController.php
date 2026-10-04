@@ -62,7 +62,18 @@ class AssignmentVerificationController extends Controller
         $this->authorizeCustodian($request, $assignment);
         $this->ensurePending($assignment);
 
-        DB::transaction(function () use ($assignment) {
+        DB::transaction(function () use ($assignment, $request) {
+            // A reassignment: whoever held the asset until now hands it over.
+            AssetAssignment::where('asset_id', $assignment->asset_id)
+                ->where('id', '!=', $assignment->id)
+                ->where('status', AssetAssignment::STATUS_ASSIGNED)
+                ->get()
+                ->each(fn (AssetAssignment $previous) => $previous->update([
+                    'status' => AssetAssignment::STATUS_UNASSIGNED,
+                    'returned_date' => today(),
+                    'return_note' => 'Reassigned to '.$request->user()->name,
+                ]));
+
             $assignment->update([
                 'status' => AssetAssignment::STATUS_ASSIGNED,
                 'verified_at' => now(),

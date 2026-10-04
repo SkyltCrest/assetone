@@ -7,7 +7,7 @@
 @section('content')
 
 <x-banner title="User Management" text="Create and manage users who can access AssetOne." :keys="['N' => 'new', '/' => 'search']">
-    <button type="button" class="btn btn-secondary" data-export="users" data-export-table="#usersExport"><i class="bi bi-download me-2"></i>Export CSV</button>
+    <a href="{{ request()->fullUrlWithQuery(['export' => 1, 'page' => null]) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal" data-key="n">
         <i class="bi bi-person-plus me-2"></i>Add New User
     </button>
@@ -115,16 +115,6 @@
             </div>
         @endforelse
     </div>
-
-    {{-- The same rows as a table, used only for the CSV export --}}
-    <table class="d-none" id="usersExport">
-        <thead><tr><th>ID</th><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th></tr></thead>
-        <tbody>
-            @foreach($users as $user)
-                <tr><td>{{ $user->id }}</td><td>{{ $user->name }}</td><td>{{ $user->username }}</td><td>{{ $user->email }}</td><td>{{ $roles[$user->role] ?? $user->role }}</td><td>{{ $user->department }}</td><td>{{ ucfirst($user->status) }}</td></tr>
-            @endforeach
-        </tbody>
-    </table>
 
     <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
         <small class="text-muted">Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users</small>

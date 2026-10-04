@@ -7,6 +7,8 @@ use App\Models\AssetMaintenance;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Support\CsvExport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class AssetMaintenanceController extends Controller
@@ -25,14 +27,14 @@ class AssetMaintenanceController extends Controller
         'cancelled' => 'Cancelled',
     ];
 
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $search = $request->query('search');
         $status = $request->query('status');
         $type = $request->query('type');
         $perPage = in_array((int) $request->query('per_page'), [5, 10, 25, 50], true) ? (int) $request->query('per_page') : 10;
 
-        $maintenances = AssetMaintenance::with('asset.photo')
+        $query = AssetMaintenance::with('asset.photo')
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('maintenance_code', 'like', "%{$search}%")
                 ->orWhereHas('asset', fn ($q3) => $q3->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))))
@@ -40,9 +42,28 @@ class AssetMaintenanceController extends Controller
             ->when($status && $status !== 'overdue', fn ($q) => $q->where('status', $status))
             ->when($type, fn ($q) => $q->where('type', $type))
             ->orderByDesc('maintenance_date')
-            ->orderByDesc('id')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderByDesc('id');
+
+        // Export every record that matches the filters, not just the page on screen.
+        if ($request->boolean('export')) {
+            return CsvExport::download('asset-maintenance',
+                ['Maintenance ID', 'Asset ID', 'Asset Name', 'Type', 'Maintenance Date', 'Next Maintenance', 'Service Provider', 'Cost (RM)', 'Status', 'Due Status', 'Notes'],
+                $query->get()->map(fn (AssetMaintenance $m) => [
+                    $m->maintenance_code,
+                    $m->asset->asset_code ?? '',
+                    $m->asset->name ?? '',
+                    self::TYPES[$m->type] ?? $m->type,
+                    $m->maintenance_date->format('Y-m-d'),
+                    optional($m->next_maintenance_date)->format('Y-m-d'),
+                    $m->service_provider,
+                    $m->cost,
+                    self::STATUSES[$m->status] ?? $m->status,
+                    $m->dueStatus()[0],
+                    $m->description,
+                ]));
+        }
+
+        $maintenances = $query->paginate($perPage)->withQueryString();
 
         // Open records with a next maintenance date, nearest (or most overdue) first.
         $upcoming = AssetMaintenance::with('asset')

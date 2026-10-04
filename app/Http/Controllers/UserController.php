@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
+use App\Support\CsvExport;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -31,7 +34,7 @@ class UserController extends Controller
 
     public function __construct(private readonly PhotoService $photoService) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|StreamedResponse
     {
         $search = $request->query('search');
         $role = $request->query('role');
@@ -50,6 +53,21 @@ class UserController extends Controller
 
         foreach (self::SORTS[$sort][1] as [$column, $direction]) {
             $users->orderBy($column, $direction);
+        }
+
+        // Export every user that matches the filters, not just the page on screen.
+        if ($request->boolean('export')) {
+            return CsvExport::download('users',
+                ['Name', 'Username', 'Email', 'Role', 'Department', 'Status', 'Assets Held'],
+                $users->get()->map(fn (User $u) => [
+                    $u->name,
+                    $u->username,
+                    $u->email,
+                    self::ROLES[$u->role] ?? ucwords(str_replace('_', ' ', $u->role)),
+                    $u->department,
+                    ucfirst($u->status),
+                    $u->assets->count(),
+                ]));
         }
 
         return view('users.index', [
@@ -171,7 +189,7 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', Rule::unique('users', 'username')->ignore($user?->id)],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user?->id)],
-            'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
+            'password' => [$user ? 'nullable' : 'required', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role' => ['required', Rule::in($roles)],
             'department' => ['required', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],

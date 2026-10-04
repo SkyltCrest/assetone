@@ -16,10 +16,22 @@
     $ini = fn (string $n) => collect(preg_split('/\s+/', trim($n)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('');
     $inactiveUserTotal = $userTotal - $activeUserTotal;
     $activePct = $userTotal ? round($activeUserTotal / $userTotal * 100) : 0;
-    // Three groups, as on the status chart: active, under maintenance, and everything else.
+    // Status groups shown on the breakdown chart. Any custom status falls into "Other".
     $maintenanceTotal = $countFor('Under Maintenance');
     $activeTotal = $countFor('Active');
-    $trendStats = ['total' => $assetTotal, 'active' => $activeTotal, 'maintenance' => $maintenanceTotal, 'unavailable' => max(0, $assetTotal - $activeTotal - $maintenanceTotal)];
+    $unavailableTotal = $countFor('Unavailable');
+    $disposedTotal = $countFor('Disposed');
+    $lostTotal = $countFor('Lost');
+    $otherTotal = max(0, $assetTotal - $activeTotal - $maintenanceTotal - $unavailableTotal - $disposedTotal - $lostTotal);
+    $trendStats = ['total' => $assetTotal, 'active' => $activeTotal, 'maintenance' => $maintenanceTotal, 'unavailable' => $unavailableTotal, 'disposed' => $disposedTotal, 'lost' => $lostTotal, 'other' => $otherTotal];
+    $statusGroups = collect([
+        ['k' => 'Active', 'n' => $activeTotal, 'c' => '#10b981'],
+        ['k' => 'Maintenance', 'n' => $maintenanceTotal, 'c' => '#f59e0b'],
+        ['k' => 'Unavailable', 'n' => $unavailableTotal, 'c' => '#ef4444'],
+        ['k' => 'Disposed', 'n' => $disposedTotal, 'c' => '#64748b'],
+        ['k' => 'Lost', 'n' => $lostTotal, 'c' => '#a855f7'],
+        ['k' => 'Other', 'n' => $otherTotal, 'c' => '#38bdf8'],
+    ])->reject(fn ($g) => $g['k'] === 'Other' && $g['n'] === 0)->values();
     $statCards = [
         ['Total Assets', $assetTotal, 'blue', 'bi-box-seam', 2, 'total'],
         ['Active Assets', $trendStats['active'], 'green', 'bi-check-circle', 3, 'active'],
@@ -67,10 +79,10 @@
                     </div>
                 </div>
                 <div class="status-legend">
-                    @foreach([['Active', $trendStats['active'], '#10b981'], ['Maintenance', $trendStats['maintenance'], '#f59e0b'], ['Unavailable', $trendStats['unavailable'], '#ef4444']] as [$name, $n, $colour])
-                        <div class="lg-item" style="--c:{{ $colour }}">
-                            <div class="lg-top"><span class="lg-dot"></span>{{ $name }}</div>
-                            <div class="lg-val">{{ $n }}<small>{{ round($n / $assetTotal * 100) }}%</small></div>
+                    @foreach($statusGroups as $g)
+                        <div class="lg-item" style="--c:{{ $g['c'] }}">
+                            <div class="lg-top"><span class="lg-dot"></span>{{ $g['k'] }}</div>
+                            <div class="lg-val">{{ $g['n'] }}<small>{{ round($g['n'] / $assetTotal * 100) }}%</small></div>
                         </div>
                     @endforeach
                 </div>
@@ -229,6 +241,7 @@
     var $ = function (id) { return document.getElementById(id); };
     var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     var stats = @json($trendStats);          // { total, active, maintenance, unavailable }
+    var statusGroups = @json($statusGroups); // [{ k, n, c }] one entry per status on the donut
     var categoryData = @json($categoryChartData);
 
     /* ---------- Daily snapshots (kept in this browser) drive the trends and sparklines ---------- */
@@ -276,7 +289,6 @@
             dusk:  { def: 'rgba(255,255,255,.75)', tick: 'rgba(255,255,255,.55)', tickX: 'rgba(255,255,255,.85)', grid: 'rgba(255,255,255,.08)' },
             light: { def: 'rgba(20,38,61,.75)', tick: 'rgba(20,38,61,.6)', tickX: 'rgba(20,38,61,.85)', grid: 'rgba(13,71,161,.1)' }
         };
-        var STATUS_META = [{ k: 'Active', c: '#10b981' }, { k: 'Maintenance', c: '#f59e0b' }, { k: 'Unavailable', c: '#ef4444' }];
         var CAT_COLORS = ['#3b82f6', '#6366f1', '#06b6d4', '#8b5cf6', '#0ea5e9', '#ec4899', '#14b8a6'];
         var tipBase = { backgroundColor: 'rgba(6,17,31,.94)', borderColor: 'rgba(144,202,249,.35)', borderWidth: 1, padding: 12, cornerRadius: 10, titleFont: { size: 13, weight: '700' }, bodyFont: { size: 12, weight: '500' }, boxPadding: 6 };
         Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -287,11 +299,11 @@
             Chart.defaults.color = C.def;
             charts.forEach(function (c) { c.destroy(); }); charts = [];
 
-            var s = $('statusChart'), vals = [stats.active, stats.maintenance, stats.unavailable], total = vals[0] + vals[1] + vals[2];
+            var s = $('statusChart'), shown = statusGroups.filter(function (g) { return g.n > 0; }), vals = shown.map(function (g) { return g.n; }), total = vals.reduce(function (a, b) { return a + b; }, 0);
             if (s && total) charts.push(new Chart(s, {
                 type: 'doughnut',
-                data: { labels: STATUS_META.map(function (m) { return m.k; }),
-                        datasets: [{ data: vals, backgroundColor: STATUS_META.map(function (m) { return m.c; }), borderWidth: 0, borderRadius: 10, spacing: 4, hoverOffset: 8 }] },
+                data: { labels: shown.map(function (g) { return g.k; }),
+                        datasets: [{ data: vals, backgroundColor: shown.map(function (g) { return g.c; }), borderWidth: 0, borderRadius: 10, spacing: 4, hoverOffset: 8 }] },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '74%', animation: { duration: 1100, easing: 'easeOutQuart' },
                     plugins: { legend: { display: false }, tooltip: Object.assign({}, tipBase, { usePointStyle: true,
                         callbacks: { label: function (c) { return '  ' + c.parsed + ' assets (' + (total ? (c.parsed / total * 100).toFixed(1) : 0) + '%)'; } } }) } }

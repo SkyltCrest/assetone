@@ -20,11 +20,19 @@ class AssignmentVerificationController extends Controller
     {
         $mine = fn () => AssetAssignment::where('custodian_id', $request->user()->id);
 
+        $search = trim((string) $request->query('search'));
+        $status = $request->query('status');
+
         $assignments = AssetAssignment::with(['asset.photo', 'assignedBy'])
             ->where('custodian_id', $request->user()->id)
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->whereHas('asset', fn ($a) => $a->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))
+                ->orWhereHas('assignedBy', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->orderByRaw("FIELD(status, 'pending_verification', 'assigned', 'rejected', 'unassigned')")
             ->orderByDesc('assigned_date')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('my-assignments.index', [
             'assignments' => $assignments,

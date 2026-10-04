@@ -14,6 +14,11 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
+    /** Failed sign-ins allowed before a short lock-out, and how long it lasts. */
+    private const MAX_TRIES = 5;
+
+    private const LOCK_SECONDS = 30;
+
     /**
      * Show the login page.
      */
@@ -37,19 +42,15 @@ class AuthenticatedSessionController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if (! $user) {
-            RateLimiter::hit($this->throttleKey($request));
+            RateLimiter::hit($this->throttleKey($request), self::LOCK_SECONDS);
 
-            return back()->withErrors([
-                'email' => 'We could not find an account with that email address.',
-            ])->onlyInput('email');
+            return $this->failed($request, 'email', 'We could not find an account with that email address.');
         }
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            RateLimiter::hit($this->throttleKey($request));
+            RateLimiter::hit($this->throttleKey($request), self::LOCK_SECONDS);
 
-            return back()->withErrors([
-                'password' => 'The password you entered is incorrect.',
-            ])->onlyInput('email');
+            return $this->failed($request, 'password', 'The password you entered is incorrect.');
         }
 
         if (! $user->isActive()) {
@@ -81,15 +82,35 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
+     * Send the user back with the error, how many tries are left, and the
+     * lock-out countdown once the last try has been used.
+     */
+    private function failed(Request $request, string $field, string $message): RedirectResponse
+    {
+        $key = $this->throttleKey($request);
+        $left = RateLimiter::remaining($key, self::MAX_TRIES);
+
+        if ($left <= 0) {
+            $request->session()->flash('lock_seconds', RateLimiter::availableIn($key));
+            $message = 'Account temporarily locked. Too many failed attempts.';
+        } else {
+            $message .= " {$left} attempt(s) left.";
+        }
+
+        return back()->withErrors([$field => $message])->onlyInput('email');
+    }
+
+    /**
      * Block further attempts once this email/IP pair has failed too many times.
      */
     protected function ensureIsNotRateLimited(Request $request): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey($request), 5)) {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey($request), self::MAX_TRIES)) {
             return;
         }
 
         $seconds = RateLimiter::availableIn($this->throttleKey($request));
+        $request->session()->flash('lock_seconds', $seconds);   // drives the countdown on the login page
         $minutes = ceil($seconds / 60);
 
         throw ValidationException::withMessages([

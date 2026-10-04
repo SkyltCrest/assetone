@@ -6,54 +6,40 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">Asset Assignment</h3>
-        <p class="text-muted mb-0">Assign an asset to a user, set when it is due back and record its return.</p>
-    </div>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAssignmentModal">
+<x-banner title="Asset Assignment" text="Assign an asset to a user and track its status." :keys="['N' => 'new', '/' => 'search']">
+    <button class="btn btn-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#addAssignmentModal" data-key="n" data-assign-new>
         <i class="bi bi-plus-circle me-2"></i>New Assignment
     </button>
-</div>
+</x-banner>
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Pending Verification</div><h2>{{ number_format($pendingCount) }}</h2></div>
-        <div class="stat-icon icon-orange"><i class="bi bi-hourglass-split"></i></div>
+        <div><div class="text-muted small text-uppercase">Total Assets</div><h2>{{ number_format($assetTotal) }}</h2><div class="stat-sub">{{ number_format($pendingCount) }} awaiting verification</div></div>
+        <div class="stat-icon icon-blue"><i class="bi bi-box-seam"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Assigned</div><h2>{{ number_format($assignedCount) }}</h2></div>
-        <div class="stat-icon icon-green"><i class="bi bi-person-check"></i></div>
+        <div><div class="text-muted small text-uppercase">Available</div><h2>{{ number_format($availableCount) }}</h2><div class="stat-sub">ready to assign</div></div>
+        <div class="stat-icon icon-green"><i class="bi bi-check-circle"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Overdue</div><h2>{{ number_format($overdueCount) }}</h2></div>
-        <div class="stat-icon icon-red"><i class="bi bi-alarm"></i></div>
+        <div><div class="text-muted small text-uppercase">Assigned</div><h2>{{ number_format($assignedCount) }}</h2><div class="stat-sub">{{ $overdueCount ? number_format($overdueCount).' overdue' : 'none overdue' }}</div></div>
+        <div class="stat-icon icon-orange"><i class="bi bi-person-check"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Returned (History)</div><h2>{{ number_format($returnedCount) }}</h2></div>
-        <div class="stat-icon icon-blue"><i class="bi bi-arrow-counterclockwise"></i></div>
+        <div><div class="text-muted small text-uppercase">Returned (History)</div><h2>{{ number_format($returnedCount) }}</h2><div class="stat-sub">completed loans</div></div>
+        <div class="stat-icon icon-red"><i class="bi bi-arrow-counterclockwise"></i></div>
     </div></div>
 </div>
 
 <div class="card content-card p-4">
-    <form method="GET" action="{{ route('assignments.index') }}" class="row g-3 mb-4 align-items-end">
-        <div class="col-md-7">
+    <form method="GET" action="{{ route('assignments.index') }}" class="row g-3 mb-3 align-items-end">
+        @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
+        <div class="col-md-10">
             <label class="form-label fw-semibold">Search</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input type="search" name="search" value="{{ $search }}" class="form-control" placeholder="Search asset, PIC, code...">
             </div>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Status</label>
-            <select name="status" class="form-select" onchange="this.form.submit()">
-                <option value="">All Status</option>
-                <option value="pending_verification" @selected($status === 'pending_verification')>Pending Verification</option>
-                <option value="assigned" @selected($status === 'assigned')>Assigned</option>
-                <option value="overdue" @selected($status === 'overdue')>Overdue</option>
-                <option value="rejected" @selected($status === 'rejected')>Rejected</option>
-                <option value="unassigned" @selected($status === 'unassigned')>Returned</option>
-            </select>
         </div>
         <div class="col-md-2">
             <a href="{{ route('assignments.index') }}" class="btn btn-outline-secondary w-100" title="Reset Filters"><i class="bi bi-arrow-clockwise me-1"></i>Reset</a>
@@ -61,19 +47,31 @@
     </form>
 
     @if($overdueCount > 0)
-        <div class="alert alert-danger d-flex align-items-center gap-2">
+        <div class="overdue-banner show">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div><strong>{{ $overdueCount }}</strong> asset{{ $overdueCount > 1 ? 's are' : ' is' }} overdue for return.
+            <span>{{ $overdueCount }} asset(s) overdue for return. Please take action.
                 @if($status !== 'overdue')<a href="{{ route('assignments.index', ['status' => 'overdue']) }}" class="alert-link ms-1">Show overdue</a>@endif
-            </div>
+            </span>
         </div>
     @endif
 
+    {{-- Status chips + export --}}
+    <div class="chips mb-3">
+        @foreach($chips as $value => [$label, $count])
+            <a href="{{ route('assignments.index', array_filter(['status' => $value ?: null, 'search' => $search])) }}"
+               class="chip {{ $value === 'overdue' ? 'chip-overdue' : '' }} {{ (string) $status === (string) $value ? 'active' : '' }}">{{ $label }}<b>{{ $count }}</b></a>
+        @endforeach
+        <div class="chip-tools">
+            <button type="button" class="btn btn-secondary" data-export="asset-assignments"><i class="bi bi-download me-2"></i>Export CSV</button>
+        </div>
+    </div>
+
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
                     <th>No.</th>
+                    <th>Photo</th>
                     <th>Asset Code</th>
                     <th>Asset Name</th>
                     <th>PIC (Person In Charge)</th>
@@ -85,43 +83,70 @@
             </thead>
             <tbody>
                 @forelse($assignments as $i => $assignment)
-                    <tr>
+                    @php
+                        $asset = $assignment->asset;
+                        $pic = $assignment->custodian;
+                        $overdue = $assignment->isOverdue();
+                        $daysLeft = ($assignment->status === 'assigned' && $assignment->due_date) ? (int) today()->diffInDays($assignment->due_date, false) : null;
+                    @endphp
+                    <tr class="{{ $overdue ? 'row-overdue' : '' }}">
                         <td>{{ $assignments->firstItem() + $i }}</td>
+                        <td>@include('partials.thumb', ['url' => $asset?->photoUrl(), 'alt' => $asset->name ?? 'Asset', 'info' => ($asset->asset_code ?? '').' · '.$assignment->statusLabel().($pic ? ' · '.$pic->name : '')])</td>
                         <td class="fw-semibold">
-                            @if($assignment->asset)
-                                <a href="{{ route('assets.show', $assignment->asset) }}">{{ $assignment->asset->asset_code }}</a>
+                            @if($asset)
+                                <a href="{{ route('assets.show', $asset) }}">{{ $asset->asset_code }}</a>
                             @else
                                 —
                             @endif
                         </td>
-                        <td class="text-dark">{{ $assignment->asset->name ?? '—' }}</td>
-                        <td>{{ $assignment->custodian->name ?? '—' }}<div class="small text-muted">{{ $assignment->department }}</div></td>
-                        <td>{{ $assignment->assigned_date->format('d M Y') }}</td>
-                        <td>
+                        <td class="text-dark">{{ $asset->name ?? '—' }}</td>
+                        <td data-sort="{{ $pic->name ?? '' }}">
+                            @if($pic)
+                                <div class="pic-wrap">
+                                    @include('partials.avatar', ['user' => $pic, 'size' => 34])
+                                    <div class="pic-txt"><strong>{{ $pic->name }}</strong><small>{{ ucwords(str_replace('_', ' ', $pic->role)) }}{{ $pic->department ? ' · '.str_replace(' Department', '', $pic->department) : '' }}</small></div>
+                                </div>
+                            @else
+                                <span class="text-muted">—</span>
+                            @endif
+                        </td>
+                        <td data-sort="{{ $assignment->assigned_date->format('Ymd') }}">{{ $assignment->assigned_date->format('d M Y') }}</td>
+                        <td class="due-cell" data-sort="{{ optional($assignment->due_date)->format('Ymd') ?? '99999999' }}">
                             @if($assignment->status === 'unassigned' && $assignment->returned_date)
                                 <span class="text-muted">Returned {{ $assignment->returned_date->format('d M Y') }}</span>
                             @elseif($assignment->due_date)
-                                <span class="{{ $assignment->isOverdue() ? 'text-danger fw-semibold' : '' }}">{{ $assignment->due_date->format('d M Y') }}</span>
-                                @if($assignment->isOverdue())
-                                    <div class="small text-danger">{{ (int) $assignment->due_date->diffInDays(today()) }} day(s) late</div>
+                                {{ $assignment->due_date->format('d M Y') }}
+                                @if($overdue)
+                                    <small class="due-warning"><i class="bi bi-exclamation-triangle-fill"></i> {{ abs($daysLeft) }} day(s) late</small>
+                                @elseif($daysLeft !== null && $daysLeft <= 3)
+                                    <small class="due-soon"><i class="bi bi-clock-fill"></i> {{ $daysLeft }} day(s) left</small>
+                                @elseif($daysLeft !== null)
+                                    <small class="due-ok">{{ $daysLeft }} day(s) left</small>
                                 @endif
                             @else
                                 —
                             @endif
                         </td>
                         <td>
-                            <span class="badge bg-{{ $assignment->statusColor() }}">{{ $assignment->statusLabel() }}</span>
+                            <span class="badge {{ $overdue ? 'badge-overdue' : 'bg-'.$assignment->statusColor() }}">{{ $overdue ? 'Overdue' : $assignment->statusLabel() }}</span>
                             @if($assignment->status === 'rejected' && $assignment->rejection_reason)
-                                <i class="bi bi-info-circle text-muted ms-1" title="{{ $assignment->rejection_reason }}"></i>
+                                <i class="bi bi-info-circle info-tip" data-bs-toggle="tooltip" title="{{ $assignment->rejection_reason }}"></i>
                             @endif
                         </td>
                         <td class="text-end text-nowrap">
-                            @if($assignment->status === 'assigned')
-                                <button type="button" class="btn btn-sm btn-outline-success me-1" data-bs-toggle="modal" data-bs-target="#returnAssignmentModal{{ $assignment->id }}" title="Return asset"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            @if($assignment->status === 'assigned' && $asset)
+                                <button type="button" class="btn btn-sm btn-outline-warning me-1" title="Reassign" data-reassign="{{ $asset->id }}"><i class="bi bi-arrow-left-right"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-danger me-1" data-bs-toggle="modal" data-bs-target="#returnAssignmentModal{{ $assignment->id }}" title="Return"><i class="bi bi-box-arrow-in-left"></i></button>
+                                @if($overdue)
+                                    <form method="POST" action="{{ route('assignments.remind', $assignment) }}" class="d-inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-danger me-1" title="Send Reminder"><i class="bi bi-bell-fill"></i></button>
+                                    </form>
+                                @endif
                             @endif
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#historyModal{{ $assignment->id }}" title="Assignment history"><i class="bi bi-clock-history"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#historyModal{{ $assignment->id }}" title="History"><i class="bi bi-clock-history"></i></button>
                             <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editAssignmentModal{{ $assignment->id }}" title="Edit"><i class="bi bi-pencil"></i></button>
-                            <form method="POST" action="{{ route('assignments.destroy', $assignment) }}" class="d-inline" onsubmit="return confirm('Delete this assignment?');">
+                            <form method="POST" action="{{ route('assignments.destroy', $assignment) }}" class="d-inline" data-confirm="Delete this assignment?">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
@@ -129,11 +154,11 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8">
-                        <div class="text-center py-5">
-                            <i class="bi bi-inbox display-4 text-muted"></i>
-                            <h5 class="mt-3">No Assignment Records</h5>
-                            <p class="text-muted">Try adjusting your search or filters.</p>
+                    <tr><td colspan="9">
+                        <div class="empty-state">
+                            <i class="bi bi-inboxes"></i>
+                            <h6>No Assignment Records</h6>
+                            <span>Try adjusting your search or filters.</span>
                         </div>
                     </td></tr>
                 @endforelse
@@ -222,10 +247,6 @@
                         @if($assignment->isOverdue())
                             <div class="alert alert-danger py-2 px-3 small">This asset was due back on {{ $assignment->due_date->format('d M Y') }}.</div>
                         @endif
-                        <div class="mb-3">
-                            <label class="form-label fw-medium">Return Date <span class="required">*</span></label>
-                            <input type="date" name="returned_date" value="{{ now()->format('Y-m-d') }}" min="{{ $assignment->assigned_date->format('Y-m-d') }}" max="{{ now()->format('Y-m-d') }}" class="form-control" required>
-                        </div>
                         <div class="mb-1">
                             <label class="form-label fw-medium">Note</label>
                             <textarea name="return_note" class="form-control" rows="3" placeholder="Condition of the asset, anything missing..."></textarea>
@@ -278,12 +299,12 @@
     </div>
 @endforeach
 
-{{-- New --}}
+{{-- New / Reassign --}}
 <div class="modal fade" id="addAssignmentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold">New Assignment</h5>
+                <h5 class="modal-title fw-bold" id="assignModalTitle">New Assignment</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{{ route('assignments.store') }}">
@@ -291,29 +312,36 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label fw-medium">Asset <span class="required">*</span></label>
-                        <select name="asset_id" class="form-select" required>
+                        <select name="asset_id" id="assignAsset" class="form-select" required>
                             <option value="" selected disabled>Select asset</option>
                             @foreach($assets as $asset)
-                                <option value="{{ $asset->id }}">{{ $asset->asset_code }} - {{ $asset->name }}</option>
+                                @php $busy = in_array($asset->id, $busyAssetIds, true); @endphp
+                                <option value="{{ $asset->id }}" data-available="{{ $busy ? 0 : 1 }}"
+                                        data-photo="{{ $asset->photoUrl() }}" data-name="{{ $asset->name }}" data-code="{{ $asset->asset_code }}"
+                                        @if($busy) hidden disabled @endif>{{ $asset->asset_code }} — {{ $asset->name }}</option>
                             @endforeach
                         </select>
+                        <div class="form-text" id="assignAssetHint">Only <strong>available</strong> assets can be assigned.</div>
+                        <div class="asg-prev d-none" id="asgPrev"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-medium">Assign To (PIC) <span class="required">*</span></label>
                         <select name="custodian_id" class="form-select" required>
                             <option value="" selected disabled>Select user</option>
                             @foreach($custodians as $custodian)
-                                <option value="{{ $custodian->id }}">{{ $custodian->name }}</option>
+                                <option value="{{ $custodian->id }}">{{ $custodian->name }} — {{ ucwords(str_replace('_', ' ', $custodian->role)) }}{{ $custodian->department ? ' ('.$custodian->department.')' : '' }}</option>
                             @endforeach
                         </select>
+                        <div class="form-text">Includes administrators, asset officers and department staff.</div>
                     </div>
                     @include('assignments._loan-fields', ['assignment' => null, 'required' => true])
                     <div class="mb-3">
                         <label class="form-label fw-medium">Note / Reason</label>
-                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional note..."></textarea>
                     </div>
                     <div class="alert alert-info py-2 px-3 small mb-0">
                         <i class="bi bi-info-circle me-1"></i>The assignment will be marked <strong>Pending Verification</strong> and the staff member will be notified to accept or reject it.
+                        <span id="reassignNote" class="d-none">The current holder's record is closed as returned.</span>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -328,6 +356,48 @@
 @endsection
 
 @push('scripts')
+<script>
+// New Assignment / Reassign: asset preview, and which assets may be picked.
+(function () {
+    var modal = document.getElementById('addAssignmentModal'), select = document.getElementById('assignAsset'),
+        prev = document.getElementById('asgPrev'), title = document.getElementById('assignModalTitle'),
+        hint = document.getElementById('assignAssetHint'), note = document.getElementById('reassignNote');
+    var reassignId = null;
+
+    function setOptions() {
+        [].slice.call(select.options).forEach(function (o) {
+            if (!o.value) return;
+            var ok = o.dataset.available === '1' || o.value === reassignId;
+            o.hidden = !ok; o.disabled = !ok;
+        });
+    }
+    function preview() {
+        var o = select.selectedOptions[0];
+        prev.innerHTML = '';
+        if (!o || !o.value) { prev.classList.add('d-none'); return; }
+        prev.classList.remove('d-none');
+        var pic;
+        if (o.dataset.photo) { pic = document.createElement('img'); pic.src = o.dataset.photo; pic.alt = ''; }
+        else { pic = document.createElement('span'); pic.className = 'thumb thumb-empty'; pic.innerHTML = '<i class="bi bi-image"></i>'; }
+        var txt = document.createElement('div'), s = document.createElement('strong'), sm = document.createElement('small');
+        s.textContent = o.dataset.name; sm.textContent = o.dataset.code; txt.appendChild(s); txt.appendChild(sm);
+        prev.appendChild(pic); prev.appendChild(txt);
+    }
+    select.addEventListener('change', preview);
+    document.querySelectorAll('[data-assign-new]').forEach(function (b) { b.addEventListener('click', function () { reassignId = null; }); });
+    document.querySelectorAll('[data-reassign]').forEach(function (b) {
+        b.addEventListener('click', function () { reassignId = b.dataset.reassign; bootstrap.Modal.getOrCreateInstance(modal).show(); });
+    });
+    modal.addEventListener('show.bs.modal', function () {
+        setOptions();
+        title.textContent = reassignId ? 'Reassign Asset' : 'New Assignment';
+        hint.classList.toggle('d-none', !!reassignId); note.classList.toggle('d-none', !reassignId);
+        select.value = reassignId || '';
+        select.style.pointerEvents = reassignId ? 'none' : '';
+        preview();
+    });
+})();
+</script>
 <script>
 // Loan duration: presets or a custom number of days, with the due date worked out live.
 document.querySelectorAll('[data-loan]').forEach(function (box) {

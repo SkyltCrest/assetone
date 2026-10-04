@@ -39,7 +39,7 @@ class UserController extends Controller
         $department = $request->query('department');
         $sort = array_key_exists($request->query('sort'), self::SORTS) ? $request->query('sort') : 'name';
 
-        $users = User::with('photo')
+        $users = User::with(['photo', 'assets.photo'])
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('username', 'like', "%{$search}%")
@@ -108,15 +108,55 @@ class UserController extends Controller
         return back()->with('status', "User \"{$user->name}\" has been updated.");
     }
 
+    /**
+     * Switch one account between active and inactive.
+     */
+    public function toggle(Request $request, User $user): RedirectResponse
+    {
+        if ($user->id === $request->user()->id) {
+            return back()->withErrors(['user' => 'You cannot deactivate your own account while logged in.']);
+        }
+
+        $user->update(['status' => $user->status === 'active' ? 'inactive' : 'active']);
+
+        return back()->with('status', "User status for \"{$user->name}\" set to ".ucfirst($user->status).'.');
+    }
+
+    /**
+     * Activate or deactivate several accounts at once.
+     */
+    public function bulkStatus(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:active,inactive'],
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'exists:users,id'],
+        ]);
+
+        $changed = User::whereIn('id', $data['ids'])
+            ->where('id', '!=', $request->user()->id)
+            ->where('status', '!=', $data['status'])
+            ->get()
+            ->each(fn (User $user) => $user->update(['status' => $data['status']]))
+            ->count();
+
+        return back()->with('status', "{$changed} user(s) set to ".ucfirst($data['status']).'.');
+    }
+
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === $request->user()->id) {
             return back()->withErrors(['user' => 'You cannot delete your own account while logged in.']);
         }
 
+        // A person in charge of assets cannot simply disappear.
+        if ($user->assets()->exists()) {
+            return back()->withErrors(['user' => "Cannot delete \"{$user->name}\" because they are still the PIC of one or more assets. Reassign those assets first."]);
+        }
+
         $user->delete();
 
-        return back()->with('status', 'User has been deleted.');
+        return back()->with('status', "User \"{$user->name}\" has been deleted successfully.");
     }
 
     private function validated(Request $request, ?User $user = null): array

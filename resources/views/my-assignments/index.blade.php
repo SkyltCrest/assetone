@@ -6,10 +6,7 @@
 
 @section('content')
 
-<div class="mb-4">
-    <h3 class="fw-bold mb-1">My Assignments</h3>
-    <p class="text-muted mb-0">Review assets assigned to you. Accept an assignment to confirm the asset matches the record, or reject it if something is wrong.</p>
-</div>
+<x-banner title="My Assignments" text="Review assets assigned to you. Accept an assignment to confirm the asset matches the record, or reject it if something is wrong." />
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
@@ -38,8 +35,10 @@
 @endif
 
 <div class="card content-card p-4">
+    @include('partials.list-filter', ['action' => route('my-assignments.index'), 'placeholder' => 'Search asset code, name, assigned by...', 'options' => ['pending_verification' => 'Pending', 'assigned' => 'Accepted', 'rejected' => 'Rejected', 'unassigned' => 'Returned']])
+
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
                     <th>No.</th>
@@ -67,7 +66,7 @@
                         <td>
                             <span class="badge bg-{{ $assignment->statusColor() }}">{{ $assignment->statusLabel() }}</span>
                             @if($assignment->status === 'rejected' && $assignment->rejection_reason)
-                                <i class="bi bi-info-circle text-muted ms-1" title="{{ $assignment->rejection_reason }}"></i>
+                                <i class="bi bi-info-circle info-tip" data-bs-toggle="tooltip" title="{{ $assignment->rejection_reason }}"></i>
                             @endif
                         </td>
                         <td class="text-end">

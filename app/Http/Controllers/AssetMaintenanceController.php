@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Asset;
 use App\Models\AssetMaintenance;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -29,6 +30,7 @@ class AssetMaintenanceController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
         $type = $request->query('type');
+        $perPage = in_array((int) $request->query('per_page'), [5, 10, 25, 50], true) ? (int) $request->query('per_page') : 10;
 
         $maintenances = AssetMaintenance::with('asset.photo')
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
@@ -39,7 +41,7 @@ class AssetMaintenanceController extends Controller
             ->when($type, fn ($q) => $q->where('type', $type))
             ->orderByDesc('maintenance_date')
             ->orderByDesc('id')
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         // Open records with a next maintenance date, nearest (or most overdue) first.
@@ -47,7 +49,7 @@ class AssetMaintenanceController extends Controller
             ->whereNotIn('status', [AssetMaintenance::STATUS_COMPLETED, AssetMaintenance::STATUS_CANCELLED])
             ->whereNotNull('next_maintenance_date')
             ->orderBy('next_maintenance_date')
-            ->take(8)
+            ->take(10)
             ->get();
 
         return view('maintenance.index', [
@@ -56,6 +58,16 @@ class AssetMaintenanceController extends Controller
             'search' => $search,
             'status' => $status,
             'type' => $type,
+            'perPage' => $perPage,
+            'chips' => [
+                '' => ['All', AssetMaintenance::count()],
+                'pending' => ['Pending', AssetMaintenance::where('status', 'pending')->count()],
+                'in_progress' => ['In Progress', AssetMaintenance::where('status', 'in_progress')->count()],
+                'completed' => ['Completed', AssetMaintenance::where('status', 'completed')->count()],
+                'cancelled' => ['Cancelled', AssetMaintenance::where('status', 'cancelled')->count()],
+                'overdue' => ['Overdue', AssetMaintenance::overdue()->count()],
+            ],
+            'assetsServiced' => AssetMaintenance::distinct()->count('asset_id'),
             'types' => self::TYPES,
             'statuses' => self::STATUSES,
             'totalCount' => AssetMaintenance::count(),
@@ -81,6 +93,23 @@ class AssetMaintenanceController extends Controller
         $maintenance->update($this->validated($request));
 
         return back()->with('status', 'Maintenance record updated successfully.');
+    }
+
+    /**
+     * Change only the status (used when a card is moved on the board).
+     */
+    public function updateStatus(Request $request, AssetMaintenance $maintenance): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:'.implode(',', array_keys(self::STATUSES))],
+        ]);
+
+        $maintenance->update(['status' => $data['status']]);
+
+        return response()->json([
+            'ok' => true,
+            'message' => "{$maintenance->maintenance_code} moved to ".self::STATUSES[$data['status']],
+        ]);
     }
 
     public function destroy(AssetMaintenance $maintenance): RedirectResponse

@@ -232,6 +232,26 @@
         setTimeout(function () { if (!busy) content.innerHTML = ''; }, 600);
         showToast("Logout cancelled. You're still signed in.");
     }
+    function loGo() { logoutForm.submit(); }
+
+    // Goodbye screen with a short countdown before returning to the login page.
+    function loSuccess() {
+        var h = new Date().getHours(), bye = h < 12 ? 'Have a great day' : h < 18 ? 'Have a wonderful afternoon' : 'Have a restful evening';
+        var nameEl = document.querySelector('#logoutConfirmModal .lo-user b'), first = nameEl ? nameEl.textContent.trim().split(/\s+/)[0] : '';
+        content.innerHTML = '<div class="lo-stage"><div class="lo-okwrap"><svg class="lo-ok" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45"/><path d="M30 52 L44 66 L71 36"/></svg></div>'
+            + '<h4>You\'re signed out</h4><p id="loBye"></p>'
+            + '<div class="lo-cnt"><div class="lo-cring"><svg viewBox="0 0 52 52"><circle class="bg" cx="26" cy="26" r="22"/><circle class="fg" id="loRingC" cx="26" cy="26" r="22"/></svg><b id="loSec">3</b></div><span>Returning to the login page</span></div>'
+            + '<button type="button" class="btn lo-confirm w-100 lo-go" id="loNow"><span>Go to login now</span><i class="bi bi-arrow-right"></i></button></div>';
+        $('loBye').textContent = bye + (first ? ', ' + first : '') + '. See you again soon.';
+        $('loNow').addEventListener('click', loGo); $('loNow').focus();
+        var ring = $('loRingC');
+        requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = '138.2'; }); });
+        var s = 3, iv = setInterval(function () {
+            s--; var el = $('loSec'); if (el) el.textContent = Math.max(s, 0);
+            if (s <= 0) { clearInterval(iv); loGo(); }
+        }, 1000);
+    }
+
     function loStart() {
         if (busy) return; busy = true;
         var reset = !!($('loClear') && $('loClear').checked), T = reduced ? 120 : 480;
@@ -249,14 +269,15 @@
             set(2, 'done'); bar.style.width = '100%';
             var a = $('loAbort'); if (a) a.disabled = true;
             loClearData(reset);
-            logoutForm.submit();
         }, 250 + 3 * T));
+        timers.push(setTimeout(loSuccess, 250 + 3 * T + 450));
         $('loAbort').addEventListener('click', loAbort);
     }
     if (logoutLink && modalEl && logoutForm && window.bootstrap) {
         modal = new bootstrap.Modal(modalEl);
         logoutLink.addEventListener('click', function (e) { e.preventDefault(); loFill(); modal.show(); });
         modalEl.addEventListener('shown.bs.modal', function () { if (confirmBtn) confirmBtn.focus(); });
+        modalEl.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !busy) { e.preventDefault(); loStart(); } });
         var card = $('loCard');
         card.addEventListener('mousemove', function (e) {
             var r = card.getBoundingClientRect(), px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;

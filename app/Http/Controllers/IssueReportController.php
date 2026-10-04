@@ -30,11 +30,21 @@ class IssueReportController extends Controller
     {
         $mine = fn () => IssueReport::where('reported_by', $request->user()->id);
 
+        $search = trim((string) $request->query('search'));
+        $status = $request->query('status');
+
         $reports = IssueReport::with(['asset', 'verifier', 'photo'])
+            ->withCount('photos')
             ->where('reported_by', $request->user()->id)
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('report_code', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhereHas('asset', fn ($a) => $a->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))))
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->orderByRaw("FIELD(status, 'pending_verification', 'accepted', 'rejected', 'resolved')")
             ->orderByDesc('created_at')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('issues.index', [
             'reports' => $reports,
@@ -53,7 +63,7 @@ class IssueReportController extends Controller
 
         $data = $request->validate([
             'asset_id' => ['required', 'integer', 'in:'.$reportable->pluck('id')->implode(',')],
-            'description' => ['required', 'string', 'max:2000'],
+            'description' => ['required', 'string', 'max:600'],
             'photos' => ['required', 'array', 'min:1', 'max:'.self::MAX_PHOTOS],
             'photos.*' => PhotoService::RULES,
         ], [

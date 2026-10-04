@@ -134,7 +134,8 @@ class Asset extends Model
         return $query->where(function ($q) use ($term) {
             $q->where('asset_code', 'like', "%{$term}%")
                 ->orWhere('name', 'like', "%{$term}%")
-                ->orWhere('serial_number', 'like', "%{$term}%");
+                ->orWhere('serial_number', 'like', "%{$term}%")
+                ->orWhereHas('custodian', fn ($c) => $c->where('name', 'like', "%{$term}%"));
         });
     }
 }

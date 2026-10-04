@@ -28,14 +28,14 @@ class HomeController extends Controller
 
         $recentMaintenance = AssetMaintenance::with('asset')
             ->latest('maintenance_date')
-            ->take(5)
+            ->take(4)
             ->get();
 
         $categoryBreakdown = AssetCategory::withCount('assets')
             ->orderByDesc('assets_count')
             ->get(['id', 'name']);
 
-        $users = User::orderByDesc('created_at')->get(['id', 'name', 'email', 'role', 'status', 'created_at']);
+        $users = User::with('photo')->orderByDesc('created_at')->get(['id', 'name', 'email', 'role', 'status', 'created_at']);
 
         return view('home', [
             'assetTotal' => $assetTotal,
@@ -44,7 +44,8 @@ class HomeController extends Controller
             'userTotal' => $users->count(),
             'activeUserTotal' => $users->where('status', 'active')->count(),
             'roleBreakdown' => $users->countBy('role')->sortDesc(),
-            'recentUsers' => $users->take(5),
+            // Enough rows for the Active / Deactivated chips to filter from; the page shows five at a time.
+            'recentUsers' => $users->take(30),
             'categoryBreakdown' => $categoryBreakdown,
             'statusBreakdown' => $statusBreakdown,
             'recentAssets' => $recentAssets,

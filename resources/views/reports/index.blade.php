@@ -10,20 +10,14 @@
 
 @section('content')
 
-<div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3 mb-4">
-    <div>
-        <h3 class="fw-bold mb-1">Asset Report</h3>
-        <p class="text-muted mb-0">Filter the asset register, choose your columns, then print or export.</p>
-    </div>
-    <div class="d-flex gap-2 no-print">
-        <button type="submit" form="reportFilters" formaction="{{ route('reports.export') }}" class="btn btn-outline-primary">
-            <i class="bi bi-filetype-csv me-2"></i>Export CSV
-        </button>
-        <button type="submit" form="reportFilters" formaction="{{ route('reports.print') }}" formtarget="_blank" class="btn btn-primary">
-            <i class="bi bi-printer me-2"></i>Print Report
-        </button>
-    </div>
-</div>
+<x-banner title="Asset Report" text="Filter the asset register, choose your columns, then print or export." :keys="['/' => 'search', 'P' => 'print']">
+    <button type="submit" form="reportFilters" formaction="{{ route('reports.export') }}" class="btn btn-secondary">
+        <i class="bi bi-download me-2"></i>Export CSV
+    </button>
+    <button type="submit" form="reportFilters" formaction="{{ route('reports.print') }}" formtarget="_blank" class="btn btn-primary" data-key="p">
+        <i class="bi bi-printer me-2"></i>Print Report
+    </button>
+</x-banner>
 
 {{-- Filters --}}
 <div class="card content-card p-4 mb-4 no-print">
@@ -42,7 +36,7 @@
                 <label class="form-label small fw-semibold text-muted">Search</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Asset code or name...">
+                    <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Code, name, custodian, supplier...">
                 </div>
             </div>
             <div class="col-md-4">
@@ -113,13 +107,12 @@
         <div class="row g-3">
             <div class="col-lg-8">
                 <label class="form-label small fw-semibold text-muted">Columns to include</label>
-                <div class="d-flex flex-wrap gap-3">
+                <div class="col-checks">
                     @foreach($allColumns as $key => $label)
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="columns[]" value="{{ $key }}"
-                                   id="col-{{ $key }}" @checked(in_array($key, $selectedColumns, true))>
-                            <label class="form-check-label small" for="col-{{ $key }}">{{ $label }}</label>
-                        </div>
+                        <label class="ccheck">
+                            <input type="checkbox" name="columns[]" value="{{ $key }}" @checked(in_array($key, $selectedColumns, true))>
+                            <span>{{ $label }}</span>
+                        </label>
                     @endforeach
                 </div>
             </div>
@@ -147,9 +140,15 @@
             </div>
         </div>
 
-        <div class="mt-4">
-            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-2"></i>Apply</button>
+        <div class="mt-4 d-flex flex-wrap gap-2 align-items-center">
+            <button type="submit" class="btn btn-primary btn-apply" id="btnApply"><i class="bi bi-check2 me-2"></i>Apply</button>
+            <a href="{{ route('reports.index', ['reset' => 1]) }}" class="btn btn-secondary"><i class="bi bi-arrow-clockwise me-2"></i>Reset</a>
+            <div class="ms-auto d-flex gap-2 flex-wrap">
+                <input type="text" id="saveName" class="form-control" style="width:220px" placeholder="Name this report..." maxlength="40" form="noForm">
+                <button type="button" class="btn btn-outline-primary" id="btnSave"><i class="bi bi-bookmark-plus me-2"></i>Save report</button>
+            </div>
         </div>
+        <div class="saved" id="savedList"></div>
     </form>
 </div>
 
@@ -278,3 +277,53 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script>
+// Saved reports (kept in this browser) and the "filters changed" pulse on Apply.
+(function () {
+    var KEY = 'assetone_rep_saved', list = document.getElementById('savedList'), form = document.getElementById('reportFilters'),
+        apply = document.getElementById('btnApply'), name = document.getElementById('saveName');
+    var read = function () { try { return JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (e) { return []; } };
+    var write = function (v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} };
+
+    function render() {
+        var items = read();
+        list.innerHTML = '';
+        if (!items.length) return;
+        var lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.innerHTML = '<i class="bi bi-bookmarks me-1"></i>Saved reports';
+        list.appendChild(lbl);
+        items.forEach(function (it, i) {
+            var chip = document.createElement('span'); chip.className = 'sq'; chip.setAttribute('role', 'button');
+            chip.appendChild(document.createTextNode(it.name));
+            var del = document.createElement('button'); del.type = 'button'; del.setAttribute('aria-label', 'Delete'); del.innerHTML = '<i class="bi bi-x"></i>';
+            del.addEventListener('click', function (e) { e.stopPropagation(); var l = read(); l.splice(i, 1); write(l); render(); });
+            chip.appendChild(del);
+            chip.addEventListener('click', function () { location.href = @json(route('reports.index')) + '?' + it.q; });
+            list.appendChild(chip);
+        });
+    }
+
+    document.getElementById('btnSave').addEventListener('click', function () {
+        var n = name.value.trim();
+        if (!n) { name.focus(); if (window.aoToast) window.aoToast('Give the report a name first.'); return; }
+        var q = new URLSearchParams(new FormData(form)).toString();
+        var l = read().filter(function (s) { return s.name.toLowerCase() !== n.toLowerCase(); });
+        l.push({ name: n, q: q }); write(l); name.value = ''; render();
+        if (window.aoToast) window.aoToast('Saved "' + n + '"');
+    });
+    name.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('btnSave').click(); } });
+
+    ['input', 'change'].forEach(function (ev) {
+        form.addEventListener(ev, function (e) { if (e.target !== name) apply.classList.add('dirty'); });
+    });
+    form.addEventListener('submit', function (e) {
+        if (!form.querySelector('input[name="columns[]"]:checked')) {
+            e.preventDefault();
+            if (window.aoToast) window.aoToast('Choose at least one column for the report.');
+        }
+    });
+    render();
+})();
+</script>
+@endpush

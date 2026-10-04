@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\User;
 use App\Notifications\AssignmentAwaitingVerification;
+use App\Notifications\AssignmentOverdueReminder;
 use App\Observers\ActivityObserver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,31 @@ class AssetAssignmentController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $counts = [
+            'all' => AssetAssignment::count(),
+            'pending' => AssetAssignment::where('status', AssetAssignment::STATUS_PENDING)->count(),
+            'assigned' => AssetAssignment::where('status', AssetAssignment::STATUS_ASSIGNED)->count(),
+            'overdue' => AssetAssignment::overdue()->count(),
+            'rejected' => AssetAssignment::where('status', AssetAssignment::STATUS_REJECTED)->count(),
+            'returned' => AssetAssignment::where('status', AssetAssignment::STATUS_UNASSIGNED)->count(),
+        ];
+
+        // Assets that already have a live (assigned or awaiting verification) assignment.
+        $busyAssetIds = AssetAssignment::whereIn('status', [AssetAssignment::STATUS_ASSIGNED, AssetAssignment::STATUS_PENDING])
+            ->pluck('asset_id')->unique()->values()->all();
+
         return view('assignments.index', [
+            'chips' => [
+                '' => ['All', $counts['all']],
+                'pending_verification' => ['Pending Verification', $counts['pending']],
+                'assigned' => ['Assigned', $counts['assigned']],
+                'overdue' => ['Overdue', $counts['overdue']],
+                'rejected' => ['Rejected', $counts['rejected']],
+                'unassigned' => ['Returned', $counts['returned']],
+            ],
+            'busyAssetIds' => $busyAssetIds,
+            'assetTotal' => Asset::count(),
+            'availableCount' => Asset::whereNotIn('id', $busyAssetIds)->count(),
             'assignments' => $assignments,
             'search' => $search,
             'status' => $status,
@@ -39,7 +64,7 @@ class AssetAssignmentController extends Controller
             'assignedCount' => AssetAssignment::where('status', AssetAssignment::STATUS_ASSIGNED)->count(),
             'overdueCount' => AssetAssignment::overdue()->count(),
             'returnedCount' => AssetAssignment::where('status', AssetAssignment::STATUS_UNASSIGNED)->count(),
-            'assets' => Asset::orderBy('asset_code')->get(),
+            'assets' => Asset::with('photo')->orderBy('asset_code')->get(),
             'custodians' => User::where('status', 'active')->orderBy('name')->get(),
             'loanDurations' => config('assetone.loan_durations'),
         ]);
@@ -50,6 +75,20 @@ class AssetAssignmentController extends Controller
         $data = $this->validated($request, requireLoan: true);
 
         $asset = Asset::findOrFail($data['asset_id']);
+        $newHolder = User::findOrFail($data['custodian_id']);
+
+        // Reassigning: close whoever currently holds the asset.
+        AssetAssignment::where('asset_id', $asset->id)
+            ->where('status', AssetAssignment::STATUS_ASSIGNED)
+            ->get()
+            ->each(function (AssetAssignment $current) use ($newHolder) {
+                $current->update([
+                    'status' => AssetAssignment::STATUS_UNASSIGNED,
+                    'returned_date' => today(),
+                    'return_note' => 'Reassigned to '.$newHolder->name,
+                ]);
+                $this->syncAssetCustodian($current);
+            });
 
         $assignment = AssetAssignment::create([
             'asset_id' => $asset->id,
@@ -114,7 +153,7 @@ class AssetAssignmentController extends Controller
             'Only an asset that is currently assigned can be returned.');
 
         $data = $request->validate([
-            'returned_date' => ['required', 'date', 'after_or_equal:'.$assignment->assigned_date->toDateString(), 'before_or_equal:today'],
+            'returned_date' => ['nullable', 'date', 'after_or_equal:'.$assignment->assigned_date->toDateString(), 'before_or_equal:today'],
             'return_note' => ['nullable', 'string', 'max:1000'],
         ], [
             'returned_date.after_or_equal' => 'The return date cannot be earlier than the assigned date.',
@@ -123,13 +162,27 @@ class AssetAssignmentController extends Controller
 
         $assignment->update([
             'status' => AssetAssignment::STATUS_UNASSIGNED,
-            'returned_date' => $data['returned_date'],
+            'returned_date' => $data['returned_date'] ?? today(),
             'return_note' => $data['return_note'] ?? null,
         ]);
 
         $this->syncAssetCustodian($assignment);
 
         return back()->with('status', "{$assignment->asset->asset_code} has been returned and is available again.");
+    }
+
+    /**
+     * Remind the custodian that an asset is overdue for return.
+     */
+    public function remind(Request $request, AssetAssignment $assignment): RedirectResponse
+    {
+        abort_unless($assignment->isOverdue() && $assignment->custodian, 403, 'Only an overdue assignment can be reminded.');
+
+        $assignment->custodian->notify(new AssignmentOverdueReminder($assignment->load('asset'), $request->user()->name));
+
+        $daysLate = (int) $assignment->due_date->diffInDays(today());
+
+        return back()->with('status', "Reminder sent to {$assignment->custodian->name} — {$daysLate} day(s) overdue.");
     }
 
     public function destroy(AssetAssignment $assignment): RedirectResponse
@@ -145,7 +198,7 @@ class AssetAssignmentController extends Controller
             'asset_id' => ['required', 'exists:assets,id'],
             'custodian_id' => ['required', 'exists:users,id'],
             'assigned_date' => ['required', 'date'],
-            'loan_days' => [$requireLoan ? 'required' : 'nullable', 'integer', 'min:1', 'max:3650'],
+            'loan_days' => [$requireLoan ? 'required' : 'nullable', 'integer', 'min:1', $requireLoan ? 'max:365' : 'max:3650'],
             'status' => ['sometimes', 'required', 'in:pending_verification,assigned,rejected,unassigned'],
             'notes' => ['nullable', 'string'],
         ], [

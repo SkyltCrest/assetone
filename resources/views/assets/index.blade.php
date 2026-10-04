@@ -11,47 +11,42 @@
     $hasFilters = $search || $selectedCategory || $selectedLocation || $selectedStatus || $selectedDepartment || $purchaseFrom || $purchaseTo;
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">Asset Overview</h3>
-        <p class="text-muted mb-0">Search across all registered assets by name, code, serial number, category, location, department or status.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#qrScanModal">
-            <i class="bi bi-qr-code-scan me-2"></i>Scan QR
-        </button>
-        @if($canManage)
-            <a href="{{ route('assets.create') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-2"></i>Register New Asset</a>
-        @endif
-    </div>
-</div>
+<x-banner title="Asset Overview" text="Find asset records using multiple search and filter options." :keys="['/' => 'search', 'S' => 'scan']">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#qrScanModal" data-key="s">
+        <i class="bi bi-qr-code-scan me-1"></i> Scan QR
+    </button>
+    @if($canManage)
+        <a href="{{ route('assets.create') }}" class="btn btn-light" data-key="n"><i class="bi bi-plus-circle me-2"></i>Register New Asset</a>
+    @endif
+</x-banner>
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Total Assets</div><h2>{{ $totalCount }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Total Assets</div><h2>{{ $totalCount }}</h2><div class="stat-sub">{{ $assets->total() }} matching your filters</div></div>
         <div class="stat-icon icon-blue"><i class="bi bi-box-seam"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Available</div><h2>{{ $availableCount }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Available</div><h2>{{ $availableCount }}</h2><div class="stat-sub">not assigned to anyone</div></div>
         <div class="stat-icon icon-green"><i class="bi bi-check-circle"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Assigned</div><h2>{{ $assignedCount }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Assigned</div><h2>{{ $assignedCount }}</h2><div class="stat-sub">with a custodian</div></div>
         <div class="stat-icon icon-orange"><i class="bi bi-person-check"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Maintenance</div><h2>{{ $maintenanceCount }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Maintenance</div><h2>{{ $maintenanceCount }}</h2><div class="stat-sub">being serviced</div></div>
         <div class="stat-icon icon-red"><i class="bi bi-tools"></i></div>
     </div></div>
 </div>
 
 <div class="card content-card p-4">
-    <form method="GET" action="{{ route('assets.index') }}" class="row g-3 mb-4 align-items-end">
+    <form method="GET" action="{{ route('assets.index') }}" class="row g-3 mb-3 align-items-end" id="ovFilters">
+        <input type="hidden" name="sort" value="{{ $sort }}">
         <div class="col-md-6 col-xl-4">
             <label class="form-label" for="assetSearch">Search Asset</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="search" id="assetSearch" name="search" value="{{ $search }}" class="form-control" placeholder="Code, name or serial number...">
+                <input type="search" id="assetSearch" name="search" value="{{ $search }}" class="form-control" placeholder="Search code, name, PIC...">
             </div>
         </div>
         <div class="col-md-6 col-xl-2">
@@ -106,23 +101,45 @@
         </div>
     </form>
 
+    <div id="dateFilterError" class="text-danger small mb-3 {{ ($purchaseFrom && $purchaseTo && $purchaseFrom > $purchaseTo) ? '' : 'd-none' }}">"Purchase From" cannot be later than "Purchase To".</div>
+
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h5 class="fw-bold mb-0">Asset Records</h5>
-        <div class="btn-group" role="group" aria-label="Choose view">
-            <button type="button" class="btn btn-sm btn-outline-primary" data-view-btn="table" title="Table view"><i class="bi bi-list-ul"></i></button>
-            <button type="button" class="btn btn-sm btn-outline-primary" data-view-btn="cards" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
+        <small class="text-muted">{{ $assets->total() }} asset{{ $assets->total() === 1 ? '' : 's' }} found</small>
+    </div>
+
+    {{-- Status chips, sort, export, table / card switch --}}
+    @php $query = request()->except(['status', 'page']); @endphp
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <div class="chips mb-0">
+            <a href="{{ route('assets.index', $query) }}" class="chip {{ $selectedStatus ? '' : 'active' }}">All<b>{{ $totalCount }}</b></a>
+            @foreach($statuses as $status)
+                <a href="{{ route('assets.index', $query + ['status' => $status->id]) }}" class="chip {{ (string) $selectedStatus === (string) $status->id ? 'active' : '' }}">{{ $status->name }}<b>{{ $status->assets_count }}</b></a>
+            @endforeach
+        </div>
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+            <select class="form-select" style="width:auto;min-height:40px" aria-label="Sort assets" onchange="var f=document.getElementById('ovFilters');f.sort.value=this.value;f.submit()">
+                @foreach($sorts as $value => $label)
+                    <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <button type="button" class="btn btn-secondary" data-export="asset-overview"><i class="bi bi-download me-2"></i>Export CSV</button>
+            <div class="seg">
+                <button type="button" data-view-btn="table" title="Table view"><i class="bi bi-list-ul"></i></button>
+                <button type="button" data-view-btn="cards" title="Card view"><i class="bi bi-grid-3x3-gap"></i></button>
+            </div>
         </div>
     </div>
 
     @if($assets->isEmpty())
-        <div class="text-center py-5">
-            <i class="bi bi-search display-4 text-muted"></i>
-            <h5 class="mt-3">No Asset Found</h5>
-            <p class="text-muted">Try adjusting your search or filters.</p>
+        <div class="empty-state">
+            <i class="bi bi-search"></i>
+            <h6>No Asset Found</h6>
+            <span>Try changing your search or filter option.</span>
         </div>
     @else
         <div class="table-responsive" data-view="table">
-            <table class="table table-hover align-middle">
+            <table class="table table-hover align-middle" data-sortable>
                 <thead>
                     <tr>
                         <th>No.</th>
@@ -145,14 +162,14 @@
                             <td class="text-dark">{{ $asset->name }}<div class="small text-muted">{{ $asset->type->name ?? '' }}</div></td>
                             <td>{{ $asset->category->name ?? '—' }}</td>
                             <td>{{ $asset->location->name ?? $asset->location_detail ?? '—' }}</td>
-                            <td>{{ $asset->custodian->name ?? 'Unassigned' }}</td>
+                            <td>{{ $asset->custodian->name ?? 'Unassigned' }}@if($asset->custodian)<small class="d-block text-muted">{{ ucwords(str_replace('_', ' ', $asset->custodian->role)) }}</small>@endif</td>
                             <td><span class="badge bg-{{ $asset->assetStatus->badge_color ?? 'secondary' }}">{{ $asset->assetStatus->name ?? 'Unknown' }}</span></td>
                             <td class="text-nowrap">
                                 <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Quick view" data-bs-toggle="modal" data-bs-target="#assetDetail{{ $asset->id }}"><i class="bi bi-eye"></i></button>
                                 @if($canManage)
                                     <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-secondary me-1" title="Update"><i class="bi bi-pencil-square"></i></a>
                                     <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-inline"
-                                          onsubmit="return confirm('Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its photo, assignment, maintenance and issue history. This cannot be undone.');">
+                                          data-confirm="Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its photo, assignment, maintenance and issue history. This cannot be undone.">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></button>
@@ -165,27 +182,57 @@
             </table>
         </div>
 
-        <div class="row g-3 d-none" data-view="cards">
+        <div class="ov-grid d-none" data-view="cards">
             @foreach($assets as $asset)
-                <div class="col-sm-6 col-xl-4">
-                    <div class="asset-tile" role="button" tabindex="0" data-bs-toggle="modal" data-bs-target="#assetDetail{{ $asset->id }}">
+                @php
+                    $hue = fn (string $s) => array_reduce(str_split($s ?: 'x'), fn ($h, $c) => ($h * 31 + ord($c)) % 360, 0);
+                    $warranty = null;
+                    if ($asset->warranty_expiry_date) {
+                        $start = $asset->purchase_date ?? $asset->created_at;
+                        $total = max(1, $start->diffInDays($asset->warranty_expiry_date));
+                        $daysLeft = (int) today()->diffInDays($asset->warranty_expiry_date, false);
+                        $warranty = [
+                            'pct' => (int) round(min(max($start->diffInDays(today(), false) / $total, 0), 1) * 100),
+                            'cls' => $daysLeft < 0 ? 'bad' : ($daysLeft <= 90 ? 'warn' : ''),
+                            'label' => $daysLeft < 0 ? 'Expired' : ($daysLeft >= 60 ? round($daysLeft / 30).' mo left' : $daysLeft.' d left'),
+                        ];
+                    }
+                    $category = $asset->category->name ?? '—';
+                @endphp
+                <article class="ov-card g content-card" tabindex="0" role="button" data-href="{{ route('assets.show', $asset) }}" style="--i:{{ min($loop->index, 10) }};--h:{{ $hue($category) }}">
+                    <div class="ov-cover">
                         @if($asset->photo)
-                            <img src="{{ $asset->photoUrl() }}" alt="{{ $asset->name }}" class="asset-tile-img" loading="lazy">
+                            <img class="asset-thumb" src="{{ $asset->photoUrl() }}" alt="{{ $asset->name }}" loading="lazy" data-lightbox="{{ $asset->photoUrl() }}" data-lb-name="{{ $asset->name }}" data-lb-info="{{ $asset->asset_code }} · {{ $asset->assetStatus->name ?? '-' }}{{ $asset->custodian ? ' · '.$asset->custodian->name : '' }}">
+                            <span class="ov-cat">{{ $category }}</span>
                         @else
-                            <div class="asset-tile-img photo-empty"><i class="bi bi-image"></i></div>
+                            <div class="ov-gen" style="--h:{{ $hue($asset->name) }}"><b>{{ $category }}</b><strong>{{ $asset->name }}</strong><em>{{ $asset->asset_code }}</em></div>
                         @endif
-                        <div class="asset-tile-body">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div class="fw-bold text-truncate">{{ $asset->name }}</div>
-                                <span class="badge bg-{{ $asset->assetStatus->badge_color ?? 'secondary' }}">{{ $asset->assetStatus->name ?? 'Unknown' }}</span>
-                            </div>
-                            <div class="small text-muted">{{ $asset->asset_code }}</div>
-                            <div class="small mt-2"><i class="bi bi-tags me-1"></i>{{ $asset->category->name ?? '—' }}</div>
-                            <div class="small"><i class="bi bi-geo-alt me-1"></i>{{ $asset->location->name ?? $asset->location_detail ?? '—' }}</div>
-                            <div class="small"><i class="bi bi-person me-1"></i>{{ $asset->custodian->name ?? 'Unassigned' }}</div>
-                        </div>
                     </div>
-                </div>
+                    <div class="ov-main">
+                        <div class="ov-top"><h6>{{ $asset->name }}</h6><span class="badge bg-{{ $asset->assetStatus->badge_color ?? 'secondary' }}">{{ $asset->assetStatus->name ?? 'Unknown' }}</span></div>
+                        <div class="ov-sub">{{ $asset->custodian ? $asset->custodian->name.' · '.ucwords(str_replace('_', ' ', $asset->custodian->role)) : 'Unassigned' }}</div>
+                        <div class="ov-chips">
+                            <span class="pill pill-c">{{ $category }}</span>
+                            <span class="pill mono">{{ $asset->asset_code }}</span>
+                            <span class="pill"><i class="bi bi-geo-alt"></i>{{ $asset->location->name ?? $asset->location_detail ?? '—' }}</span>
+                        </div>
+                        <div class="ov-prog">
+                            <div class="lbl"><span>Warranty</span><span>{{ $warranty['label'] ?? 'Not set' }}</span></div>
+                            <div class="bar {{ $warranty['cls'] ?? '' }}"><i style="--w:{{ $warranty['pct'] ?? 0 }}%"></i></div>
+                        </div>
+                        @if($canManage)
+                            <div class="ov-actions">
+                                <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil-square"></i>Update</a>
+                                <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="d-flex flex-fill m-0"
+                                      data-confirm="Delete asset &quot;{{ $asset->name }}&quot;? This will also remove its photo, assignment, maintenance and issue history. This cannot be undone.">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i>Delete</button>
+                                </form>
+                            </div>
+                        @endif
+                    </div>
+                </article>
             @endforeach
         </div>
     @endif
@@ -209,7 +256,7 @@
                 <div class="row g-4">
                     <div class="col-md-5">
                         @if($asset->photo)
-                            <img src="{{ $asset->photoUrl() }}" alt="{{ $asset->name }}" class="asset-photo" loading="lazy">
+                            <img src="{{ $asset->photoUrl() }}" alt="{{ $asset->name }}" class="asset-photo" loading="lazy" data-lightbox="{{ $asset->photoUrl() }}" data-lb-name="{{ $asset->name }}" data-lb-info="{{ $asset->asset_code }}">
                         @else
                             <div class="photo-empty asset-photo"><i class="bi bi-image"></i><span>No photo yet</span></div>
                         @endif
@@ -224,7 +271,12 @@
                         <div class="detail-row"><span class="label">Department</span><span class="value">{{ $asset->department ?: '—' }}</span></div>
                         <div class="detail-row"><span class="label">Location</span><span class="value">{{ $asset->location->name ?? $asset->location_detail ?? '—' }}</span></div>
                         <div class="detail-row"><span class="label">Custodian</span><span class="value">{{ $asset->custodian->name ?? 'Unassigned' }}</span></div>
+                        <div class="detail-row"><span class="label">Assigned Date</span><span class="value">{{ optional($asset->assigned_date)->format('d M Y') ?? '—' }}</span></div>
                         <div class="detail-row"><span class="label">Purchase Date</span><span class="value">{{ optional($asset->purchase_date)->format('d M Y') ?? '—' }}</span></div>
+                        <div class="detail-row"><span class="label">Supplier</span><span class="value">{{ $asset->supplier ?: '—' }}</span></div>
+                        <div class="detail-row"><span class="label">Price</span><span class="value">{{ $asset->purchase_price !== null ? 'RM '.number_format($asset->purchase_price, 2) : '—' }}</span></div>
+                        <div class="detail-row"><span class="label">Warranty</span><span class="value">{{ optional($asset->warranty_expiry_date)->format('d M Y') ?? '—' }}</span></div>
+                        <div class="detail-row"><span class="label">Description</span><span class="value" style="max-width:60%">{{ $asset->description ?: '—' }}</span></div>
                     </div>
                 </div>
             </div>
@@ -249,7 +301,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <video id="qrVideo" width="100%" class="rounded" autoplay muted playsinline></video>
+                <div class="scan-frame"><video id="qrVideo" width="100%" autoplay muted playsinline></video></div>
                 <canvas id="qrCanvas" style="display:none;"></canvas>
                 <p id="qrText" class="mt-3 text-muted mb-2">Point the camera at a QR code</p>
                 <input type="file" id="qrGalleryInput" accept="image/*" class="d-none">
@@ -279,6 +331,28 @@
     var saved = 'table';
     try { saved = localStorage.getItem('assetone_ov_view') || 'table'; } catch (e) {}
     show(saved === 'cards' ? 'cards' : 'table');
+
+    // A card opens the asset's details page.
+    document.querySelectorAll('.ov-card[data-href]').forEach(function (card) {
+        function go(e) {
+            if (e.target.closest('.ov-actions') || e.target.closest('[data-lightbox]')) return;
+            location.href = card.dataset.href;
+        }
+        card.addEventListener('click', go);
+        card.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
+    });
+
+    // Purchase range: warn instead of searching when the dates are the wrong way round.
+    var from = document.getElementById('purchaseFrom'), to = document.getElementById('purchaseTo'), err = document.getElementById('dateFilterError');
+    [from, to].forEach(function (el) {
+        el.removeAttribute('onchange');
+        el.onchange = null;
+        el.addEventListener('change', function () {
+            var bad = from.value && to.value && from.value > to.value;
+            err.classList.toggle('d-none', !bad);
+            if (!bad) el.form.submit();
+        });
+    });
 })();
 
 (function () {
@@ -294,6 +368,11 @@
             qrText.innerHTML = "<span class='text-success fw-bold'>Asset found. Redirecting...</span>";
             scanning = false;
             window.location.href = data;
+        } else if (/^[A-Za-z0-9][A-Za-z0-9-]{2,40}$/.test(data.trim())) {
+            // A label that holds only the asset code.
+            qrText.innerHTML = "<span class='text-success fw-bold'>Asset code found. Looking it up...</span>";
+            scanning = false;
+            window.location.href = @json(route('assets.lookup')) + '?code=' + encodeURIComponent(data.trim());
         } else {
             qrText.innerHTML = "<span class='text-warning'>Scanned code is not a recognised AssetOne asset.</span>";
         }

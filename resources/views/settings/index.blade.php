@@ -11,26 +11,23 @@
 
 @section('content')
 
-<div class="mb-4">
-    <h3 class="fw-bold mb-1">Asset Management Settings</h3>
-    <p class="text-muted mb-0">Manage asset categories, locations and current asset statuses.</p>
-</div>
+<x-banner title="Asset Management" text="Create, update and manage asset categories, locations and statuses." :keys="['N' => 'add', '/' => 'search']" />
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Categories</div><h2>{{ $categoryTotal }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Categories</div><h2>{{ $categoryTotal }}</h2><div class="stat-sub">{{ $activeCounts['categories'] }} active</div></div>
         <div class="stat-icon icon-blue"><i class="bi bi-tags"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Asset Types</div><h2>{{ $typeTotal }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Asset Types</div><h2>{{ $typeTotal }}</h2><div class="stat-sub">across {{ $categoryTotal }} categories</div></div>
         <div class="stat-icon icon-green"><i class="bi bi-diagram-3"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Locations</div><h2>{{ $locationTotal }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Locations</div><h2>{{ $locationTotal }}</h2><div class="stat-sub">{{ $activeCounts['locations'] }} active</div></div>
         <div class="stat-icon icon-orange"><i class="bi bi-geo-alt"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Statuses</div><h2>{{ $statusTotal }}</h2></div>
+        <div><div class="text-muted small text-uppercase">Statuses</div><h2>{{ $statusTotal }}</h2><div class="stat-sub">{{ $activeCounts['statuses'] }} active</div></div>
         <div class="stat-icon icon-red"><i class="bi bi-clipboard-check"></i></div>
     </div></div>
 </div>
@@ -62,26 +59,25 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <h5 class="fw-bold mb-1">Asset Categories</h5>
-                <p class="text-muted mb-0">Create and manage categories for registered assets.</p>
+                <p class="text-muted mb-0">Manage asset categories and their asset types.</p>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
-                <i class="bi bi-plus-circle me-2"></i>Add New Category
-            </button>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-secondary" data-export="asset-categories"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" data-key="n">
+                    <i class="bi bi-plus-lg me-2"></i>Add New Category
+                </button>
+            </div>
         </div>
 
         <div class="card content-card p-4">
-            <div class="row mb-4">
-                <div class="col-md-5">
-                    <form method="GET" action="{{ route('asset-management.index') }}" class="input-group">
-                        <input type="hidden" name="tab" value="category">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" name="category_search" value="{{ $categorySearch }}" class="form-control" placeholder="Search category...">
-                    </form>
-                </div>
-            </div>
+            <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
+                <input type="hidden" name="tab" value="category">
+                <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="category_search" value="{{ $categorySearch }}" class="form-control" placeholder="Search category name, code or type..."></div>
+                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $categories->total() }} categor{{ $categories->total() === 1 ? 'y' : 'ies' }} found</span>
+            </form>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
                             <th>No.</th><th>Category ID</th><th>Code</th><th>Category Name</th><th>Description</th><th>Asset Types</th><th>Total Assets</th><th>Status</th><th>Action</th>
@@ -108,7 +104,7 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ $category->id }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <form method="POST" action="{{ route('categories.destroy', $category) }}" class="d-inline" onsubmit="return confirm('Delete category &quot;{{ $category->name }}&quot;?');">
+                                    <form method="POST" action="{{ route('categories.destroy', $category) }}" class="d-inline" data-confirm="Delete category &quot;{{ $category->name }}&quot;?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
@@ -136,24 +132,38 @@
                 <h5 class="fw-bold mb-1">Asset Locations</h5>
                 <p class="text-muted mb-0">Create and manage physical locations for registered assets.</p>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal">
-                <i class="bi bi-plus-circle me-2"></i>Add New Location
-            </button>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-secondary" data-export="asset-locations"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal" data-key="n">
+                    <i class="bi bi-plus-lg me-2"></i>Add New Location
+                </button>
+            </div>
         </div>
 
         <div class="card content-card p-4">
-            <div class="row mb-4">
-                <div class="col-md-5">
-                    <form method="GET" action="{{ route('asset-management.index') }}" class="input-group">
-                        <input type="hidden" name="tab" value="location">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" name="location_search" value="{{ $locationSearch }}" class="form-control" placeholder="Search location...">
-                    </form>
-                </div>
+            <div class="info-box location-info">
+                <i class="bi bi-info-circle-fill"></i>
+                <div><strong>Location and Custodian are separate.</strong><span>Register the physical location here. The custodian (PIC) is assigned separately during Asset Registration or Asset Assignment.</span></div>
             </div>
+            <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
+                <input type="hidden" name="tab" value="location">
+                <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="location_search" value="{{ $locationSearch }}" class="form-control" placeholder="Search location name or code..."></div>
+                <select name="location_department" class="form-select" onchange="this.form.submit()" aria-label="Filter by department">
+                    <option value="">All Departments</option>
+                    @foreach(config('assetone.departments') as $department)
+                        <option value="{{ $department }}" @selected($locationDepartment === $department)>{{ $department }}</option>
+                    @endforeach
+                </select>
+                <select name="location_status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+                    <option value="">All Status</option>
+                    <option value="active" @selected($locationStatus === 'active')>Active</option>
+                    <option value="inactive" @selected($locationStatus === 'inactive')>Inactive</option>
+                </select>
+                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $locations->total() }} location(s) found</span>
+            </form>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
                             <th>No.</th><th>Code</th><th>Location Name</th><th>Department</th><th>Building / Floor / Room</th><th>Total Assets</th><th>Status</th><th>Action</th>
@@ -163,7 +173,7 @@
                         @forelse($locations as $i => $location)
                             <tr>
                                 <td>{{ $locations->firstItem() + $i }}</td>
-                                <td class="fw-semibold">{{ $location->code }}</td>
+                                <td><span class="badge-location-code">{{ $location->code }}</span></td>
                                 <td class="text-dark">{{ $location->name }}</td>
                                 <td>{{ $location->department }}</td>
                                 <td>{{ $location->place() ?: '—' }}</td>
@@ -173,7 +183,7 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editLocationModal{{ $location->id }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <form method="POST" action="{{ route('locations.destroy', $location) }}" class="d-inline" onsubmit="return confirm('Delete location &quot;{{ $location->name }}&quot;?');">
+                                    <form method="POST" action="{{ route('locations.destroy', $location) }}" class="d-inline" data-confirm="Delete location &quot;{{ $location->name }}&quot;?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
@@ -201,24 +211,23 @@
                 <h5 class="fw-bold mb-1">Asset Statuses</h5>
                 <p class="text-muted mb-0">Create and manage the statuses assets can be assigned.</p>
             </div>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStatusModal">
-                <i class="bi bi-plus-circle me-2"></i>Add New Status
-            </button>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-secondary" data-export="asset-statuses"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStatusModal" data-key="n">
+                    <i class="bi bi-plus-lg me-2"></i>Add New Status
+                </button>
+            </div>
         </div>
 
         <div class="card content-card p-4">
-            <div class="row mb-4">
-                <div class="col-md-5">
-                    <form method="GET" action="{{ route('asset-management.index') }}" class="input-group">
-                        <input type="hidden" name="tab" value="status">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" name="status_search" value="{{ $statusSearch }}" class="form-control" placeholder="Search status...">
-                    </form>
-                </div>
-            </div>
+            <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
+                <input type="hidden" name="tab" value="status">
+                <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="status_search" value="{{ $statusSearch }}" class="form-control" placeholder="Search status..."></div>
+                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $statuses->total() }} status(es) found</span>
+            </form>
 
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
+                <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
                             <th>No.</th><th>Status ID</th><th>Status Name</th><th>Description</th><th>Total Assets</th><th>Badge</th><th>Status</th><th>Action</th>
@@ -238,7 +247,7 @@
                                     <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#editStatusModal{{ $assetStatus->id }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <form method="POST" action="{{ route('statuses.destroy', $assetStatus) }}" class="d-inline" onsubmit="return confirm('Delete status &quot;{{ $assetStatus->name }}&quot;?');">
+                                    <form method="POST" action="{{ route('statuses.destroy', $assetStatus) }}" class="d-inline" data-confirm="Delete status &quot;{{ $assetStatus->name }}&quot;?">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
@@ -463,7 +472,7 @@
             row.setAttribute('data-type-row', '');
             row.innerHTML =
                 '<div class="col-7"><input type="text" name="types[' + i + '][name]" class="form-control" placeholder="Type name (e.g. Laptop)" required></div>' +
-                '<div class="col-3"><input type="text" name="types[' + i + '][code]" class="form-control text-uppercase font-monospace fw-semibold" placeholder="Code" maxlength="5" pattern="[A-Za-z0-9]{1,5}" title="1 to 5 letters or numbers" required></div>' +
+                '<div class="col-3"><input type="text" name="types[' + i + '][code]" class="form-control text-uppercase font-monospace fw-semibold" placeholder="Code" maxlength="5" pattern="[A-Za-z]{1,5}" title="1 to 5 letters" required></div>' +
                 '<div class="col-2"><button type="button" class="btn btn-outline-danger w-100" data-type-remove title="Remove type"><i class="bi bi-x-lg"></i></button></div>';
             list.appendChild(row);
             row.querySelector('input').focus();
@@ -476,6 +485,30 @@
         });
         if (!next) addRow();
     });
+
+    // Remember the last tab, and slide a highlight between the tabs.
+    (function () {
+        var tabs = document.getElementById('moduleTabs'), KEY = 'assetone_mgmt_tab';
+        var glide = document.createElement('li'); glide.className = 'tab-glide'; glide.setAttribute('aria-hidden', 'true');
+        tabs.prepend(glide); tabs.classList.add('has-glide');
+        function move(a) {
+            a = a || tabs.querySelector('.nav-link.active'); if (!a) return;
+            var li = a.parentElement;
+            glide.style.width = li.offsetWidth + 'px'; glide.style.transform = 'translateX(' + li.offsetLeft + 'px)';
+        }
+        glide.style.transition = 'none'; move();
+        requestAnimationFrame(function () { requestAnimationFrame(function () { glide.style.transition = ''; }); });
+        tabs.addEventListener('show.bs.tab', function (e) { move(e.target); });
+        addEventListener('resize', function () { move(); });
+        if (document.fonts) document.fonts.ready.then(function () { move(); });
+
+        tabs.addEventListener('shown.bs.tab', function (e) { try { localStorage.setItem(KEY, e.target.dataset.tabName); } catch (err) {} });
+        if (!new URL(location.href).searchParams.get('tab')) {
+            var saved = null; try { saved = localStorage.getItem(KEY); } catch (err) {}
+            var btn = saved && tabs.querySelector('[data-tab-name="' + saved + '"]');
+            if (btn) bootstrap.Tab.getOrCreateInstance(btn).show();
+        }
+    })();
 
     document.getElementById('moduleTabs').addEventListener('shown.bs.tab', function (event) {
         const tabName = event.target.dataset.tabName;

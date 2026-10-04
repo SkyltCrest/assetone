@@ -35,6 +35,7 @@ class AssetReportController extends Controller
         'supplier' => 'Supplier',
         'po_reference' => 'PO / Reference No.',
         'warranty_expiry_date' => 'Warranty Expiry',
+        'photo' => 'Photo',
     ];
 
     /**
@@ -77,7 +78,7 @@ class AssetReportController extends Controller
     public function export(Request $request): StreamedResponse
     {
         [$assets] = $this->query($request);
-        $columns = $this->selectedColumns($request);
+        $columns = array_values(array_diff($this->selectedColumns($request), ['photo']));   // pictures cannot go in a CSV
 
         $filename = 'asset-report-'.now()->format('Ymd-His').'.csv';
 
@@ -111,8 +112,17 @@ class AssetReportController extends Controller
         $from = $request->query('purchase_from');
         $to = $request->query('purchase_to');
 
-        $assets = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian'])
-            ->search($search ?: null)
+        $assets = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian', 'photo'])
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('asset_code', 'like', "%{$search}%")
+                ->orWhere('name', 'like', "%{$search}%")
+                ->orWhere('serial_number', 'like', "%{$search}%")
+                ->orWhere('department', 'like', "%{$search}%")
+                ->orWhere('supplier', 'like', "%{$search}%")
+                ->orWhereHas('category', fn ($r) => $r->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('location', fn ($r) => $r->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('assetStatus', fn ($r) => $r->where('name', 'like', "%{$search}%"))
+                ->orWhereHas('custodian', fn ($r) => $r->where('name', 'like', "%{$search}%"))))
             ->when($categoryId, fn ($q) => $q->where('asset_category_id', $categoryId))
             ->when($locationId, fn ($q) => $q->where('asset_location_id', $locationId))
             ->when($statusId, fn ($q) => $q->where('asset_status_id', $statusId))
@@ -213,10 +223,23 @@ class AssetReportController extends Controller
      */
     private function selectedColumns(Request $request): array
     {
+        if ($request->boolean('reset')) {
+            $request->session()->forget('report_columns');
+        }
+
         $requested = array_filter((array) $request->query('columns', []), 'is_string');
         $valid = array_values(array_intersect(array_keys(self::COLUMNS), $requested));
 
-        return $valid ?: self::DEFAULT_COLUMNS;
+        // The last column choice is remembered for the rest of the session.
+        if ($valid) {
+            $request->session()->put('report_columns', $valid);
+
+            return $valid;
+        }
+
+        $remembered = array_values(array_intersect(array_keys(self::COLUMNS), (array) $request->session()->get('report_columns', [])));
+
+        return $remembered ?: self::DEFAULT_COLUMNS;
     }
 
     private function cell(Asset $asset, string $column): string

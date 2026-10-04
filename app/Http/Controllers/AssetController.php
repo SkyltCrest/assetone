@@ -26,6 +26,16 @@ class AssetController extends Controller
         private readonly PhotoService $photoService,
     ) {}
 
+    /** Sort options offered on the Asset Overview. */
+    private const SORTS = [
+        '' => 'Sort: Default',
+        'name' => 'Name A-Z',
+        'code' => 'Asset code',
+        'category' => 'Category',
+        'status' => 'Status',
+        'newest' => 'Newest registered',
+    ];
+
     /**
      * List and filter assets.
      */
@@ -38,6 +48,7 @@ class AssetController extends Controller
         $department = $request->query('department');
         $purchaseFrom = $request->query('purchase_from');
         $purchaseTo = $request->query('purchase_to');
+        $sort = array_key_exists($request->query('sort'), self::SORTS) ? $request->query('sort') : '';
 
         $assets = Asset::with(['category', 'type', 'location', 'assetStatus', 'custodian', 'photo'])
             ->search($search)
@@ -47,6 +58,10 @@ class AssetController extends Controller
             ->when($department, fn ($q) => $q->where('department', $department))
             ->when($purchaseFrom, fn ($q) => $q->whereDate('purchase_date', '>=', $purchaseFrom))
             ->when($purchaseTo, fn ($q) => $q->whereDate('purchase_date', '<=', $purchaseTo))
+            ->when($sort === 'name', fn ($q) => $q->orderBy('name'))
+            ->when($sort === 'category', fn ($q) => $q->orderBy(AssetCategory::select('name')->whereColumn('asset_categories.id', 'assets.asset_category_id')))
+            ->when($sort === 'status', fn ($q) => $q->orderBy(AssetStatus::select('name')->whereColumn('asset_statuses.id', 'assets.asset_status_id')))
+            ->when($sort === 'newest', fn ($q) => $q->orderByDesc('created_at'))
             ->orderBy('asset_code')
             ->paginate(10)
             ->withQueryString();
@@ -56,8 +71,10 @@ class AssetController extends Controller
             'search' => $search,
             'categories' => AssetCategory::orderBy('name')->get(),
             'locations' => AssetLocation::orderBy('name')->get(),
-            'statuses' => AssetStatus::orderBy('name')->get(),
+            'statuses' => AssetStatus::withCount('assets')->orderBy('name')->get(),
             'departments' => $this->departments(),
+            'sort' => $sort,
+            'sorts' => self::SORTS,
             'selectedCategory' => $categoryId,
             'selectedLocation' => $locationId,
             'selectedStatus' => $statusId,
@@ -76,13 +93,16 @@ class AssetController extends Controller
      */
     public function create(): View
     {
-        return view('assets.create', $this->formData(new Asset()));
+        // Straight after a registration the form shows that asset's QR code once.
+        $registered = session('registered_asset') ? Asset::find(session('registered_asset')) : null;
+
+        return view('assets.create', $this->formData(new Asset()) + ['registered' => $registered]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request, new Asset());
-        $data['asset_status_id'] = AssetStatus::where('name', Asset::STATUS_ACTIVE)->value('id');
+        $data['asset_status_id'] ??= AssetStatus::where('name', Asset::STATUS_ACTIVE)->value('id');
 
         $asset = DB::transaction(function () use ($data, $request) {
             $data['asset_code'] = $this->nextCode(AssetType::findOrFail($data['asset_type_id']), $data['purchase_date']);
@@ -92,7 +112,9 @@ class AssetController extends Controller
             return $asset;
         });
 
-        return redirect()->route('assets.show', $asset)->with('status', "Asset \"{$asset->name}\" registered successfully.");
+        return redirect()->route('assets.create')
+            ->with('registered_asset', $asset->id)
+            ->with('status', "Asset \"{$asset->name}\" registered successfully.");
     }
 
     public function edit(Asset $asset): View
@@ -160,6 +182,18 @@ class AssetController extends Controller
     }
 
     /**
+     * Find an asset by its code (used when a scanned QR holds only the code).
+     */
+    public function lookup(Request $request): RedirectResponse
+    {
+        $asset = Asset::where('asset_code', trim((string) $request->query('code')))->first();
+
+        return $asset
+            ? redirect()->route('assets.show', $asset)
+            : redirect()->route('assets.index')->with('error', 'No asset matches the scanned code.');
+    }
+
+    /**
      * The code a new asset of this type and purchase date would receive.
      * Lets the form preview the code before saving.
      */
@@ -192,7 +226,7 @@ class AssetController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'serial_number' => ['required', 'string', 'max:255', Rule::unique('assets', 'serial_number')->ignore($asset->id)],
-            'description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string', 'max:500'],
             'asset_category_id' => ['required', 'exists:asset_categories,id'],
             'asset_type_id' => ['required', Rule::exists('asset_types', 'id')->where('asset_category_id', $request->input('asset_category_id'))],
             'purchase_date' => ['required', 'date'],
@@ -201,11 +235,10 @@ class AssetController extends Controller
             'po_reference' => ['nullable', 'string', 'max:255'],
             'warranty_expiry_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
             'department' => ['required', 'string', 'max:255'],
-            'location_detail' => ['required', 'string', 'max:255'],
-            'asset_location_id' => ['nullable', 'exists:asset_locations,id'],
-            'custodian_id' => ['nullable', 'exists:users,id'],
+            'asset_location_id' => ['required', Rule::exists('asset_locations', 'id')->where('department', $request->input('department'))],
+            'custodian_id' => ['required', 'exists:users,id'],
             'assigned_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
-            'asset_status_id' => [$asset->exists ? 'required' : 'nullable', 'exists:asset_statuses,id'],
+            'asset_status_id' => ['required', 'exists:asset_statuses,id'],
             // A picture is compulsory, but an asset that already has one may keep it.
             'photo' => [$asset->exists && $asset->photo ? 'nullable' : 'required', ...PhotoService::RULES],
         ], [
@@ -214,9 +247,22 @@ class AssetController extends Controller
             'warranty_expiry_date.after_or_equal' => 'Warranty expiry date cannot be earlier than the purchase date.',
             'assigned_date.after_or_equal' => 'Assigned date cannot be earlier than the purchase date.',
             'photo.required' => 'Please add a photo of the asset.',
+            'asset_location_id.required' => 'Please select the asset location.',
+            'asset_location_id.exists' => 'Choose a location that belongs to the selected department.',
+            'custodian_id.required' => 'Please select the PIC.',
+            'description.max' => 'The description may not be longer than 500 characters.',
         ]);
 
         unset($data['photo']);
+
+        // The free-text location follows the chosen location record.
+        $place = AssetLocation::find($data['asset_location_id']);
+        $data['location_detail'] = $place ? trim($place->name.($place->place() ? ', '.$place->place() : '')) : '';
+
+        // A custodian without a date is taken to have received the asset today.
+        if (! empty($data['custodian_id']) && empty($data['assigned_date'])) {
+            $data['assigned_date'] = today()->toDateString();
+        }
 
         if (empty($data['custodian_id'])) {
             $data['assigned_date'] = null;

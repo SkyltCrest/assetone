@@ -7,6 +7,7 @@ use App\Services\PhotoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 class AccountSettingsController extends Controller
@@ -30,18 +31,30 @@ class AccountSettingsController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'photo' => ['nullable', ...PhotoService::RULES],
         ], [
             'name.min' => 'Name must be at least 3 characters.',
         ]);
 
         $user->update(['name' => $data['name'], 'email' => $data['email']]);
 
-        if ($request->hasFile('photo')) {
-            $this->photoService->replace($user, $request->file('photo'));
-        }
+        return back()->with('status', 'Profile details updated successfully!');
+    }
 
-        return back()->with('status', 'Profile updated successfully.');
+    /**
+     * Save a new profile picture (sent on its own as soon as one is chosen).
+     */
+    public function updatePhoto(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+        ], [
+            'photo.mimes' => 'Only JPG or PNG images are allowed.',
+            'photo.max' => 'File size must not exceed 2MB.',
+        ]);
+
+        $this->photoService->replace($request->user(), $request->file('photo'));
+
+        return back()->with('status', 'Profile picture updated!');
     }
 
     public function removePhoto(Request $request): RedirectResponse
@@ -57,14 +70,14 @@ class AccountSettingsController extends Controller
 
         $data = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', 'string', 'min:8', 'confirmed', 'different:current_password'],
+            'password' => ['required', 'confirmed', 'different:current_password', Password::min(8)->mixedCase()->numbers()->symbols()],
         ], [
             'password.different' => 'The new password must be different from your current password.',
         ]);
 
         $user->update(['password' => Hash::make($data['password'])]);
 
-        return back()->with('status', 'Password changed successfully.');
+        return back()->with('status', 'Password updated successfully!');
     }
 
     /**
@@ -75,10 +88,10 @@ class AccountSettingsController extends Controller
     private function completeness(User $user): array
     {
         $items = [
-            'Full name' => filled($user->name),
-            'Email address' => filled($user->email),
-            'Department' => filled($user->department),
+            'Full name' => mb_strlen(trim((string) $user->name)) >= 3,
+            'Valid email address' => filter_var($user->email, FILTER_VALIDATE_EMAIL) !== false,
             'Profile photo' => $user->photo !== null,
+            'Password protected' => filled($user->password),
         ];
 
         return [

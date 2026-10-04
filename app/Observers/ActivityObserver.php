@@ -60,7 +60,7 @@ class ActivityObserver
 
         [$action, $detail] = $this->describeUpdate($model, $changed);
 
-        $this->notifyAdmins($model, $action, $detail);
+        $this->notifyAdmins($model, $action, $detail, changes: $this->changeList($model, $changed));
     }
 
     public function deleted(Model $model): void
@@ -99,7 +99,59 @@ class ActivityObserver
         return ['updated', 'changed: '.implode(', ', $changed)];
     }
 
-    private function notifyAdmins(Model $model, string $action, ?string $detail = null, bool $deleted = false): void
+    /**
+     * Before / after values for the attributes that changed, ready to display.
+     *
+     * @param  list<string>  $changed
+     * @return list<array{field: string, from: string, to: string}>
+     */
+    private function changeList(Model $model, array $changed): array
+    {
+        $show = function (mixed $value): string {
+            if ($value === null || $value === '') {
+                return '—';
+            }
+            if ($value instanceof \DateTimeInterface) {
+                return $value->format('d M Y');
+            }
+            if (is_bool($value)) {
+                return $value ? 'Yes' : 'No';
+            }
+
+            return \Illuminate\Support\Str::limit(is_scalar($value) ? (string) $value : json_encode($value), 80);
+        };
+
+        $list = [];
+        foreach ($changed as $attribute) {
+            if (in_array($attribute, ['password', 'remember_token'], true)) {
+                $list[] = ['field' => 'Password', 'from' => '••••••', 'to' => 'changed'];
+
+                continue;
+            }
+
+            $list[] = [
+                'field' => ucwords(str_replace('_', ' ', preg_replace('/_id$/', '', $attribute))),
+                'from' => $show($model->getOriginal($attribute)),
+                'to' => $show($model->getAttribute($attribute)),
+            ];
+        }
+
+        return $list;
+    }
+
+    private function moduleFor(Model $model): string
+    {
+        return match (true) {
+            $model instanceof Asset => 'Registration',
+            $model instanceof AssetAssignment => 'Assignment',
+            $model instanceof AssetMaintenance => 'Maintenance',
+            $model instanceof IssueReport => 'Issues',
+            $model instanceof User => 'Users',
+            default => 'Management',
+        };
+    }
+
+    private function notifyAdmins(Model $model, string $action, ?string $detail = null, bool $deleted = false, array $changes = []): void
     {
         if (static::$silent) {
             return;
@@ -123,6 +175,9 @@ class ActivityObserver
             actorName: $actor?->name ?? 'The system',
             url: ActivityDescriptor::url($model, $deleted),
             detail: $detail,
+            actorRole: $actor ? ucwords(str_replace('_', ' ', $actor->role)) : null,
+            module: $this->moduleFor($model),
+            changes: $changes,
         ));
     }
 }

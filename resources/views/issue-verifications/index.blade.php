@@ -6,10 +6,7 @@
 
 @section('content')
 
-<div class="mb-4">
-    <h3 class="fw-bold mb-1">Issue Verification</h3>
-    <p class="text-muted mb-0">Staff-reported asset faults. Test the asset, then accept the report to open maintenance, or reject it if the asset works properly.</p>
-</div>
+<x-banner title="Issue Verification" text="Staff-reported asset faults. Test the asset, then accept the report to open maintenance, or reject it if the asset works properly." />
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
@@ -38,8 +35,10 @@
 @endif
 
 <div class="card content-card p-4">
+    @include('partials.list-filter', ['action' => route('issue-verifications.index'), 'placeholder' => 'Search report ID, asset, reporter...', 'options' => ['pending_verification' => 'Pending Verification', 'accepted' => 'Accepted — Under Maintenance', 'rejected' => 'Rejected', 'resolved' => 'Resolved']])
+
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
                     <th>Report ID</th>
@@ -54,15 +53,15 @@
             <tbody>
                 @forelse($reports as $report)
                     <tr>
-                        <td class="fw-semibold">{{ $report->report_code }}</td>
-                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo'])</td>
+                        <td class="fw-semibold">{{ $report->report_code }}@if($report->photos_count)<span class="photo-count"><i class="bi bi-image"></i>{{ $report->photos_count }}</span>@endif</td>
+                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo', 'name' => $report->report_code, 'info' => $report->asset->name ?? ''])</td>
                         <td>
                             {{ $report->asset->asset_code ?? '—' }}
                             <span class="text-muted">{{ $report->asset->name ?? '' }}</span>
                         </td>
                         <td>{{ $report->reporter->name ?? '—' }}</td>
                         <td>{{ $report->created_at->format('d M Y, g:i A') }}</td>
-                        <td><span class="badge bg-{{ $report->statusColor() }}">{{ $report->statusLabel() }}</span></td>
+                        <td><span class="badge bg-{{ $report->statusColor() }}">{{ $report->statusLabel() }}</span>@if($report->status === 'rejected' && $report->rejection_reason)<i class="bi bi-info-circle info-tip" data-bs-toggle="tooltip" title="{{ $report->rejection_reason }}"></i>@endif</td>
                         <td class="text-end">
                             @if($report->isPending())
                                 <a href="{{ route('issue-verifications.show', $report) }}" class="btn btn-sm btn-primary">

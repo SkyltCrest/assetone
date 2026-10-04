@@ -11,12 +11,7 @@
     $maintenanceBadges = ['pending' => 'secondary', 'in_progress' => 'warning', 'completed' => 'success', 'cancelled' => 'dark'];
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">{{ $asset->name }}</h3>
-        <p class="text-muted mb-0">Asset Code: <span class="fw-semibold">{{ $asset->asset_code }}</span></p>
-    </div>
-    <div class="d-flex gap-2 flex-wrap no-print">
+<x-banner :title="$asset->name" :text="'Asset Code: '.$asset->asset_code">
         <a href="{{ route('assets.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
         @if($asset->custodian_id === auth()->id())
             <a href="{{ route('issues.index') }}" class="btn btn-outline-warning"><i class="bi bi-exclamation-octagon me-1"></i> Report Issue</a>
@@ -26,15 +21,15 @@
             <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteAssetModal"><i class="bi bi-trash me-1"></i> Delete</button>
         @endif
         <button onclick="window.print()" class="btn btn-save"><i class="bi bi-printer me-1"></i> Print</button>
-    </div>
-</div>
+</x-banner>
 
 <div class="row g-4">
     <div class="col-lg-4 order-lg-2">
         <div class="content-card mb-4">
             <h5 class="mb-3">Picture of Asset</h5>
             @if($asset->photo)
-                <a href="{{ $asset->photoUrl() }}" target="_blank" rel="noopener"><img src="{{ $asset->photoUrl() }}" alt="Photo of {{ $asset->name }}" class="asset-photo"></a>
+                <img src="{{ $asset->photoUrl() }}" alt="Photo of {{ $asset->name }}" class="asset-photo" data-lightbox="{{ $asset->photoUrl() }}" data-lb-name="{{ $asset->name }}" data-lb-info="{{ $asset->asset_code }}">
+                <div class="d-grid mt-3 no-print"><a href="{{ $asset->photoUrl() }}" download="{{ $asset->asset_code }}-photo" class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1"></i> Download picture</a></div>
             @else
                 <div class="photo-empty asset-photo"><i class="bi bi-image"></i><span>No photo yet</span></div>
             @endif
@@ -45,7 +40,10 @@
             <div class="qr-box">
                 <img src="{{ route('assets.qr', $asset) }}" alt="QR code for {{ $asset->asset_code }}" class="img-fluid mb-3" style="max-width:200px;">
                 <div class="fw-semibold mb-2">{{ $asset->asset_code }}</div>
-                <div><a href="{{ route('assets.qr', $asset) }}" download class="btn btn-outline-primary btn-sm no-print"><i class="bi bi-download me-1"></i> Download</a></div>
+                <div class="d-flex gap-2 justify-content-center flex-wrap no-print">
+                    <button type="button" class="btn btn-primary btn-sm" data-qr-download data-qr-src="{{ route('assets.qr', $asset) }}" data-code="{{ $asset->asset_code }}" data-name="{{ $asset->name }}" data-serial="{{ $asset->serial_number }}"><i class="bi bi-download me-1"></i> Download QR code</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-qr-print data-qr-src="{{ route('assets.qr', $asset) }}" data-code="{{ $asset->asset_code }}" data-name="{{ $asset->name }}" data-serial="{{ $asset->serial_number }}"><i class="bi bi-printer me-1"></i> Print QR</button>
+                </div>
             </div>
         </div>
     </div>
@@ -83,6 +81,7 @@
         <div class="content-card mb-4">
             <h5 class="mb-3">Asset Custodian</h5>
             <div class="detail-row"><span class="label">Person in Charge (PIC)</span><span class="value">{{ $asset->custodian->name ?? 'Unassigned' }}</span></div>
+            <div class="detail-row"><span class="label">Role</span><span class="value">{{ $asset->custodian ? ucwords(str_replace('_', ' ', $asset->custodian->role)) : '—' }}</span></div>
             <div class="detail-row"><span class="label">Assigned Date</span><span class="value">{{ optional($asset->assigned_date)->format('d F Y') ?? '—' }}</span></div>
         </div>
 

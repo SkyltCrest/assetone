@@ -40,6 +40,8 @@ class PasswordResetLinkController extends Controller
         }
 
         // Same message either way, so this can't be used to check which emails are registered.
-        return back()->with('status', 'If an account exists for that email, a password reset link has been sent.');
+        return back()
+            ->with('status', 'If an account exists for that email, a password reset link has been sent.')
+            ->with('reset_email', $request->input('email'));
     }
 }

@@ -11,7 +11,12 @@
 </div>
 
 <div class="mb-3">
-    <label class="form-label">Department <span class="required">*</span></label>
+    <label class="form-label">Location Code <span class="required">*</span></label>
+        <input type="text" name="code" value="{{ $location->code ?? '' }}" class="form-control text-uppercase font-monospace fw-semibold" placeholder="e.g. IT-L2-01" maxlength="15" pattern="[A-Za-z0-9\-]{1,15}" title="Letters, numbers and dashes only" required>
+        <div class="form-text">Short reference code for this location.</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Department <span class="required">*</span></label>
     <select name="department" class="form-select" required>
         <option value="" @selected(! $currentDepartment) disabled>Select department</option>
         @foreach($departments as $department)

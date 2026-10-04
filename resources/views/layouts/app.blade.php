@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>@yield('title', 'Dashboard') | AssetOne</title>
 
 <script>
@@ -75,7 +76,7 @@
         </div>
         <div class="lo-stats">
             <div><small>Session</small><b id="loDur">-</b></div>
-            <div><small>Unread</small><b>{{ $unreadNotificationCount }}</b></div>
+            <div><small>Assets tracked</small><b>{{ \App\Models\Asset::count() }}</b></div>
             <div><small>Theme</small><b id="loTheme">-</b></div>
         </div>
         <label class="lo-check"><input type="checkbox" id="loClear"><span></span>Also reset my display preferences (theme &amp; eye comfort)</label>
@@ -83,7 +84,7 @@
             <button type="button" class="btn lo-cancel" data-bs-dismiss="modal"><i class="bi bi-shield-check me-2"></i>Stay signed in</button>
             <button type="button" class="btn lo-confirm" id="confirmLogoutBtn"><span>Log out</span><i class="bi bi-arrow-right"></i></button>
         </div>
-        <p class="lo-hint"><kbd>Esc</kbd> to cancel</p>
+        <p class="lo-hint"><kbd>Enter</kbd> to log out &middot; <kbd>Esc</kbd> to cancel</p>
     </div></div>
 </div>
 
@@ -123,7 +124,7 @@
         </li>
         <li class="collapse show" id="menuWorkspace">
             <ul class="nav flex-column">
-                <li><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i>My Assignments @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
+                <li><a href="{{ route('my-assignments.index') }}" class="nav-link {{ request()->routeIs('my-assignments.*') ? 'active' : '' }}"><i class="bi bi-clipboard-check"></i>My Assignment @if($myPendingCount > 0)<span class="nav-count">{{ $myPendingCount }}</span>@endif</a></li>
                 <li><a href="{{ route('issues.index') }}" class="nav-link {{ request()->routeIs('issues.*') ? 'active' : '' }}"><i class="bi bi-exclamation-triangle"></i>Report Issues</a></li>
             </ul>
         </li>
@@ -234,7 +235,8 @@
                 <button type="button" class="btn btn-light btn-sm border position-relative" id="themeBtn" aria-label="Toggle theme"><i class="bi fs-6" id="themeIcon"></i><span class="auto-tag" id="themeAuto">A</span></button>
             </div>
 
-            <a href="{{ route('settings.index') }}" class="profile-chip d-flex align-items-center gap-2" title="Settings">
+            @yield('nav-tools')
+            <a href="{{ route('settings.index') }}" class="profile-chip d-flex align-items-center gap-2" title="View Profile">
                 <div class="text-end d-none d-sm-block">
                     <div class="fw-semibold lh-1 mb-1">{{ $user->name ?? 'Guest' }}</div>
                     <small class="text-muted">{{ $roleLabel }}</small>
@@ -282,6 +284,26 @@
     </div>
 </footer>
 
+{{-- Confirmation pop-up used by every form marked data-confirm --}}
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="confirmModalTitle">Please Confirm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="confirmModalText"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmModalYes">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Photo lightbox --}}
+<div class="lb" id="lb" aria-hidden="true"><div class="lb-card"><button type="button" class="lb-close" id="lbClose" aria-label="Close"><i class="bi bi-x-lg"></i></button><img id="lbImg" alt=""><div class="lb-cap"><strong id="lbName"></strong><small id="lbInfo"></small></div></div></div>
+
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1080">
     <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
@@ -294,6 +316,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ asset('js/assetone.js') }}?v={{ filemtime(public_path('js/assetone.js')) }}"></script>
 <script src="{{ asset('js/photo-picker.js') }}?v={{ filemtime(public_path('js/photo-picker.js')) }}"></script>
+<script src="{{ asset('js/assetone-pages.js') }}?v={{ filemtime(public_path('js/assetone-pages.js')) }}"></script>
 @stack('scripts')
 </body>
 </html>

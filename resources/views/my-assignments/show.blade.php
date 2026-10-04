@@ -6,13 +6,10 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">{{ $assignment->asset->name ?? 'Asset' }}</h3>
-        <p class="text-muted mb-0">Asset ID: <span class="fw-semibold">{{ $assignment->asset->asset_code ?? '—' }}</span></p>
-    </div>
+<x-banner :title="$assignment->asset->name ?? 'Asset'">
+    <x-slot:text>Asset ID: {{ $assignment->asset->asset_code ?? '—' }}</x-slot:text>
     <a href="{{ route('my-assignments.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
-</div>
+</x-banner>
 
 <div class="row g-4">
     <div class="col-lg-7">
@@ -54,6 +51,7 @@
             <div class="detail-row"><span class="label">Current Status</span><span class="value">{{ $assignment->asset->assetStatus->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Location</span><span class="value">{{ $assignment->asset->location_detail ?: ($assignment->asset->location->name ?? '—') }}</span></div>
             <div class="detail-row"><span class="label">Supplier</span><span class="value">{{ $assignment->asset->supplier ?: '—' }}</span></div>
+            <div class="detail-row"><span class="label">Warranty</span><span class="value">{{ optional($assignment->asset->warranty_expiry_date)->format('d F Y') ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Purchase Date</span><span class="value">{{ optional($assignment->asset->purchase_date)->format('d F Y') ?? '—' }}</span></div>
         </div>
     </div>
@@ -64,14 +62,14 @@
                 <h5 class="mb-2">Confirm Receipt</h5>
                 <p class="text-muted small">Check the asset you physically received against the information shown. If everything matches, accept the assignment. Otherwise, reject it and let the asset officer know what is wrong.</p>
 
-                <form method="POST" action="{{ route('my-assignments.accept', $assignment) }}" class="mb-3" onsubmit="return confirm('Accept this assignment? The asset will be officially assigned to you.');">
+                <form method="POST" action="{{ route('my-assignments.accept', $assignment) }}" class="mb-3" data-confirm="Accept this assignment? The asset will be officially assigned to you.">
                     @csrf
                     <button type="submit" class="btn btn-success w-100"><i class="bi bi-check-circle me-1"></i> Accept Assignment</button>
                 </form>
 
                 <hr>
 
-                <form method="POST" action="{{ route('my-assignments.reject', $assignment) }}" onsubmit="return confirm('Reject this assignment?');">
+                <form method="POST" action="{{ route('my-assignments.reject', $assignment) }}" data-confirm="Reject this assignment?">
                     @csrf
                     <div class="mb-2">
                         <label class="form-label fw-medium">Reason for rejection <span class="required">*</span></label>

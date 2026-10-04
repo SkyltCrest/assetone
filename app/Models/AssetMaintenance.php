@@ -75,6 +75,25 @@ class AssetMaintenance extends Model
     }
 
     /**
+     * How far away the next maintenance date is, in words ("In 5 days", "3 days overdue").
+     */
+    public function dueRelative(): string
+    {
+        if ($this->next_maintenance_date === null) {
+            return '';
+        }
+
+        $days = (int) today()->diffInDays($this->next_maintenance_date, false);
+
+        return match (true) {
+            $days < 0 => abs($days).' day'.(abs($days) === 1 ? '' : 's').' overdue',
+            $days === 0 => 'Due today',
+            $days === 1 => 'Tomorrow',
+            default => 'In '.$days.' days',
+        };
+    }
+
+    /**
      * Open records whose next maintenance date has passed.
      */
     public function scopeOverdue($query)

@@ -12,13 +12,10 @@
     $resolved = $report->status === \App\Models\IssueReport::STATUS_RESOLVED;
 @endphp
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">{{ $report->asset->name ?? 'Asset' }}</h3>
-        <p class="text-muted mb-0">Report {{ $report->report_code }} &middot; Asset ID: <span class="fw-semibold">{{ $report->asset->asset_code ?? '—' }}</span></p>
-    </div>
+<x-banner :title="$report->asset->name ?? 'Asset'">
+    <x-slot:text>Report {{ $report->report_code }} &middot; Asset ID: {{ $report->asset->asset_code ?? '—' }}</x-slot:text>
     <a href="{{ route('issues.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
-</div>
+</x-banner>
 
 <div class="row g-4">
     <div class="col-lg-7">
@@ -43,7 +40,7 @@
                 <h5 class="mb-3">Photos of the Damage</h5>
                 <div class="photo-grid">
                     @foreach($report->photos as $photo)
-                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener"><img src="{{ $photo->url() }}" alt="Damage photo {{ $loop->iteration }}" loading="lazy"></a>
+                        <img src="{{ $photo->url() }}" data-lightbox="{{ $photo->url() }}" data-lb-name="{{ $report->report_code }} · photo {{ $loop->iteration }}" alt="Damage photo {{ $loop->iteration }}" loading="lazy">
                     @endforeach
                 </div>
             </div>

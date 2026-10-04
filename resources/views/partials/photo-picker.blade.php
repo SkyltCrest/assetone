@@ -12,10 +12,12 @@
     $required = $required ?? false;
     $current = $current ?? null;
     $round = $round ?? false;
+    $crop = $crop ?? null;        // '4:3' crops every picture to 800 x 600
+    $maxMb = $maxMb ?? null;     // reject files larger than this before upload
     $errorKey = $max > 1 ? $name.'.*' : $name;
 @endphp
 
-<div class="photo-picker {{ $round ? 'photo-picker-round' : '' }}" data-photo-picker data-max="{{ $max }}" data-required="{{ $required ? 1 : 0 }}">
+<div class="photo-picker {{ $round ? 'photo-picker-round' : '' }}" data-photo-picker data-max="{{ $max }}" data-required="{{ $required ? 1 : 0 }}" @if($crop) data-crop="{{ $crop }}" @endif @if($maxMb) data-max-mb="{{ $maxMb }}" @endif>
     <input type="file" name="{{ $name }}{{ $max > 1 ? '[]' : '' }}" class="d-none" accept="image/*" data-photo-input @if($max > 1) multiple @endif>
 
     <div class="photo-preview" data-photo-preview>

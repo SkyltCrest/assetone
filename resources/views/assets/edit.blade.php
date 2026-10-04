@@ -2,25 +2,16 @@
 
 @section('title', 'Update Asset')
 @section('heading', 'Update Asset')
-@section('subheading', 'Update an existing asset record')
+@section('subheading', 'Edit the information of an existing asset')
 
 @section('content')
 
-<div class="mb-4">
-    <h3 class="fw-bold">Update Asset — {{ $asset->asset_code }}</h3>
-    <p class="text-muted">Update the details below and save your changes.</p>
-</div>
+<x-banner title="Update Asset" text="Correct or update the asset information below, then save your changes." :chip="$asset->asset_code" />
 
 <form method="POST" action="{{ route('assets.update', $asset) }}" enctype="multipart/form-data">
     @csrf
     @method('PUT')
-
-    @include('assets._form')
-
-    <div class="d-flex justify-content-end gap-2 mb-5">
-        <a href="{{ route('assets.show', $asset) }}" class="btn btn-secondary px-4">Cancel</a>
-        <button type="submit" class="btn btn-save px-4"><i class="bi bi-save me-2"></i>Save Changes</button>
-    </div>
+    @include('assets._form', ['submitLabel' => 'Update Asset'])
 </form>
 
 @endsection

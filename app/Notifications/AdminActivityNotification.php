@@ -19,6 +19,9 @@ class AdminActivityNotification extends Notification
         public string $actorName,
         public ?string $url = null,
         public ?string $detail = null,
+        public ?string $actorRole = null,
+        public ?string $module = null,
+        public array $changes = [],
     ) {
     }
 
@@ -49,6 +52,11 @@ class AdminActivityNotification extends Notification
             'title' => ucfirst($this->action).' — '.ucfirst($titleSubject),
             'message' => $message,
             'url' => $this->url,
+            'actor' => $this->actorName,
+            'actor_role' => $this->actorRole,
+            'module' => $this->module,
+            // [['field' => 'Status', 'from' => 'Active', 'to' => 'Disposed'], ...]
+            'changes' => $this->changes,
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AssetLocation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AssetLocationController extends Controller
 {
@@ -15,17 +16,7 @@ class AssetLocationController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'department' => ['required', 'string', 'max:255'],
-            'building' => ['nullable', 'string', 'max:255'],
-            'floor' => ['nullable', 'string', 'max:255'],
-            'room' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
-
-        $data['code'] = $this->nextCode();
+        $data = $this->validated($request);
 
         AssetLocation::create($data);
 
@@ -34,15 +25,7 @@ class AssetLocationController extends Controller
 
     public function update(Request $request, AssetLocation $location): RedirectResponse
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'department' => ['required', 'string', 'max:255'],
-            'building' => ['nullable', 'string', 'max:255'],
-            'floor' => ['nullable', 'string', 'max:255'],
-            'room' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'status' => ['required', 'in:active,inactive'],
-        ]);
+        $data = $this->validated($request, $location);
 
         $location->update($data);
 
@@ -60,6 +43,32 @@ class AssetLocationController extends Controller
         $location->delete();
 
         return back()->with('status', 'Location has been deleted.');
+    }
+
+    private function validated(Request $request, ?AssetLocation $location = null): array
+    {
+        $request->merge(['code' => strtoupper(trim((string) $request->input('code')))]);
+
+        return $request->validate([
+            'name' => [
+                'required', 'string', 'min:3', 'max:255',
+                Rule::unique('asset_locations', 'name')
+                    ->where('department', $request->input('department'))
+                    ->ignore($location?->id),
+            ],
+            'code' => ['required', 'string', 'max:15', 'regex:/^[A-Z0-9-]+$/', Rule::unique('asset_locations', 'code')->ignore($location?->id)],
+            'department' => ['required', 'string', 'max:255'],
+            'building' => ['nullable', 'string', 'max:255'],
+            'floor' => ['nullable', 'string', 'max:255'],
+            'room' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'status' => ['required', 'in:active,inactive'],
+        ], [
+            'name.min' => 'Location name must contain at least 3 characters.',
+            'name.unique' => 'This location name already exists under the selected department.',
+            'code.regex' => 'Location code can only contain letters, numbers and dashes.',
+            'code.unique' => 'This location code already exists.',
+        ]);
     }
 
     private function nextCode(): string

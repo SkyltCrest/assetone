@@ -25,10 +25,21 @@ class IssueVerificationController extends Controller
 {
     public function index(Request $request): View
     {
+        $search = trim((string) $request->query('search'));
+        $status = $request->query('status');
+
         $reports = IssueReport::with(['asset', 'reporter', 'verifier', 'photo'])
+            ->withCount('photos')
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w
+                ->where('report_code', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhereHas('asset', fn ($a) => $a->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))
+                ->orWhereHas('reporter', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
+            ->when($status, fn ($q) => $q->where('status', $status))
             ->orderByRaw("FIELD(status, 'pending_verification', 'accepted', 'rejected', 'resolved')")
             ->orderByDesc('created_at')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('issue-verifications.index', [
             'reports' => $reports,
@@ -107,6 +118,26 @@ class IssueVerificationController extends Controller
 
         return redirect()->route('issue-verifications.index')
             ->with('status', "Issue {$issue->report_code} rejected. The staff member has been notified.");
+    }
+
+    /**
+     * Close an accepted report by hand: its maintenance record is completed,
+     * which returns the asset to Active and resolves the report
+     * (see AssetMaintenanceObserver).
+     */
+    public function resolve(Request $request, IssueReport $issue): RedirectResponse
+    {
+        abort_unless($issue->status === IssueReport::STATUS_ACCEPTED && $issue->maintenance, 403, 'Only a report that is under maintenance can be resolved.');
+
+        $issue->maintenance->update(['status' => AssetMaintenance::STATUS_COMPLETED]);
+
+        // In case nothing else resolved it, close the report directly.
+        if ($issue->fresh()->status !== IssueReport::STATUS_RESOLVED) {
+            $issue->update(['status' => IssueReport::STATUS_RESOLVED]);
+        }
+
+        return redirect()->route('issue-verifications.index')
+            ->with('status', "Issue {$issue->report_code} marked as resolved.");
     }
 
     private function ensurePending(IssueReport $issue): void

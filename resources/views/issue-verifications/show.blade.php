@@ -6,13 +6,10 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">{{ $report->asset->name ?? 'Asset' }}</h3>
-        <p class="text-muted mb-0">Report {{ $report->report_code }} &middot; Asset ID: <span class="fw-semibold">{{ $report->asset->asset_code ?? '—' }}</span></p>
-    </div>
+<x-banner :title="$report->asset->name ?? 'Asset'">
+    <x-slot:text>Report {{ $report->report_code }} &middot; Asset ID: {{ $report->asset->asset_code ?? '—' }}</x-slot:text>
     <a href="{{ route('issue-verifications.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
-</div>
+</x-banner>
 
 <div class="row g-4">
     <div class="col-lg-7">
@@ -36,7 +33,7 @@
                 <h5 class="mb-3">Photos of the Damage</h5>
                 <div class="photo-grid">
                     @foreach($report->photos as $photo)
-                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener"><img src="{{ $photo->url() }}" alt="Damage photo {{ $loop->iteration }}" loading="lazy"></a>
+                        <img src="{{ $photo->url() }}" data-lightbox="{{ $photo->url() }}" data-lb-name="{{ $report->report_code }} · photo {{ $loop->iteration }}" alt="Damage photo {{ $loop->iteration }}" loading="lazy">
                     @endforeach
                 </div>
             </div>
@@ -47,6 +44,8 @@
             <div class="detail-row"><span class="label">Asset Code</span><span class="value">{{ $report->asset->asset_code ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Asset Name</span><span class="value">{{ $report->asset->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Category</span><span class="value">{{ $report->asset->category->name ?? '—' }}</span></div>
+            <div class="detail-row"><span class="label">Serial No.</span><span class="value">{{ $report->asset->serial_number ?? '—' }}</span></div>
+            <div class="detail-row"><span class="label">Department</span><span class="value">{{ $report->asset->department ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Current Status</span><span class="value">{{ $report->asset->assetStatus->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Location</span><span class="value">{{ $report->asset->location_detail ?: ($report->asset->location->name ?? '—') }}</span></div>
             <div class="detail-row"><span class="label">Custodian</span><span class="value">{{ $report->asset->custodian->name ?? 'Unassigned' }}</span></div>
@@ -59,6 +58,12 @@
                 <div class="detail-row"><span class="label">Type</span><span class="value">{{ ucfirst($report->maintenance->type) }}</span></div>
                 <div class="detail-row"><span class="label">Service Provider</span><span class="value">{{ $report->maintenance->service_provider }}</span></div>
                 <div class="detail-row"><span class="label">Maintenance Status</span><span class="value">{{ ucwords(str_replace('_', ' ', $report->maintenance->status)) }}</span></div>
+                @if($report->status === \App\Models\IssueReport::STATUS_ACCEPTED)
+                    <form method="POST" action="{{ route('issue-verifications.resolve', $report) }}" class="mt-3" data-confirm="Mark this report as resolved? The maintenance record is completed and the asset returns to Active.">
+                        @csrf
+                        <button type="submit" class="btn btn-success"><i class="bi bi-wrench-adjustable me-1"></i>Mark as Resolved</button>
+                    </form>
+                @endif
                 <p class="text-muted small mb-0 mt-2">Update this record in the <a href="{{ route('maintenance.index') }}">Maintenance</a> module. When it is marked completed, the asset returns to In Use and this report is resolved automatically.</p>
             </div>
         @endif
@@ -70,7 +75,7 @@
                 <h5 class="mb-2 text-success">Accept — asset is damaged</h5>
                 <p class="text-muted small">You tested the asset and confirmed it is not working properly. Accepting opens a maintenance record and moves the asset to <strong>Under Maintenance</strong>.</p>
                 <form method="POST" action="{{ route('issue-verifications.accept', $report) }}"
-                      onsubmit="return confirm('Accept this report? The asset will be moved to Under Maintenance.');">
+                      data-confirm="Accept this report? The asset will be moved to Under Maintenance.">
                     @csrf
                     <div class="mb-2">
                         <label class="form-label fw-medium">Maintenance type <span class="required">*</span></label>
@@ -97,7 +102,7 @@
                 <h5 class="mb-2 text-danger">Reject — asset works fine</h5>
                 <p class="text-muted small">You tested the asset and it is functioning properly. The complaint will be closed and the staff member notified.</p>
                 <form method="POST" action="{{ route('issue-verifications.reject', $report) }}"
-                      onsubmit="return confirm('Reject this report?');">
+                      data-confirm="Reject this report?">
                     @csrf
                     <div class="mb-2">
                         <label class="form-label fw-medium">Reason for rejection <span class="required">*</span></label>

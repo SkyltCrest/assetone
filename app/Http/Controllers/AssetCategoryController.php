@@ -84,13 +84,13 @@ class AssetCategoryController extends Controller
 
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'short_code' => ['required', 'alpha_num', 'max:5', Rule::unique('asset_categories', 'short_code')->ignore($category?->id)],
+            'short_code' => ['required', 'alpha', 'max:5', Rule::unique('asset_categories', 'short_code')->ignore($category?->id)],
             'description' => ['nullable', 'string'],
             'status' => ['required', 'in:active,inactive'],
             'types' => ['required', 'array', 'min:1'],
             'types.*.id' => ['nullable', 'integer'],
             'types.*.name' => ['required', 'string', 'max:255', 'distinct:ignore_case'],
-            'types.*.code' => ['required', 'alpha_num', 'max:5', 'distinct:ignore_case'],
+            'types.*.code' => ['required', 'alpha', 'max:5', 'distinct:ignore_case'],
         ], [
             'short_code.unique' => 'That category code is already used by another category.',
             'types.required' => 'Add at least one asset type.',

@@ -12,6 +12,14 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    @if($record->asset?->photoUrl())
+                        <img src="{{ $record->asset->photoUrl() }}" class="view-asset-thumb" alt="{{ $record->asset->name }}" data-lightbox="{{ $record->asset->photoUrl() }}" data-lb-name="{{ $record->asset->name }}" data-lb-info="{{ $record->asset->asset_code }}">
+                    @else
+                        <div class="asset-thumb-placeholder" style="width:70px;height:70px;font-size:26px;"><i class="bi bi-box-seam"></i></div>
+                    @endif
+                    <div><div class="fw-bold fs-5" style="color:var(--hd)">{{ $record->asset->name ?? '—' }}</div><span class="text-muted small">{{ $record->maintenance_code }}</span></div>
+                </div>
                 <div class="detail-row"><span class="label">Maintenance ID</span><span class="value">{{ $record->maintenance_code }}</span></div>
                 <div class="detail-row"><span class="label">Asset ID</span><span class="value">{{ $record->asset->asset_code ?? '—' }}</span></div>
                 <div class="detail-row"><span class="label">Asset Name</span><span class="value">{{ $record->asset->name ?? '—' }}</span></div>

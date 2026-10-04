@@ -7,7 +7,8 @@
 <div class="row g-3">
     <div class="col-12">
         <label class="form-label d-block text-center">Profile Picture</label>
-        @include('partials.photo-picker', ['name' => 'photo', 'current' => $user?->photoUrl(), 'round' => true])
+        @include('partials.photo-picker', ['name' => 'photo', 'current' => $user?->photoUrl(), 'round' => true, 'maxMb' => 2])
+        <div class="text-muted small mt-1 text-center">JPG or PNG, max 2MB.</div>
     </div>
     <div class="col-md-6">
         <label class="form-label">Full Name <span class="required">*</span></label>

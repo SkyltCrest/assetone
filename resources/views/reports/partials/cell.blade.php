@@ -3,6 +3,13 @@
     $plain = $plain ?? false;
 @endphp
 @switch($column)
+    @case('photo')
+        @if($plain)
+            @if($asset->photoUrl())<img src="{{ $asset->photoUrl() }}" alt="" style="width:48px;height:36px;object-fit:cover">@endif
+        @else
+            @include('partials.thumb', ['url' => $asset->photoUrl(), 'alt' => $asset->name, 'info' => $asset->asset_code.' · '.($asset->assetStatus->name ?? '-').($asset->custodian ? ' · '.$asset->custodian->name : '')])
+        @endif
+        @break
     @case('asset_code')
         <span class="fw-semibold">{{ $asset->asset_code }}</span>
         @break

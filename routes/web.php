@@ -64,6 +64,7 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     // Asset search (any logged-in user)
     Route::get('assets', [AssetController::class, 'index'])->name('assets.index');
+    Route::get('assets/lookup', [AssetController::class, 'lookup'])->name('assets.lookup');
     Route::get('assets/{asset}/qr', [AssetController::class, 'qr'])->name('assets.qr');
     Route::get('assets/{asset}', [AssetController::class, 'show'])->name('assets.show');
 
@@ -73,6 +74,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::post('assignments', [AssetAssignmentController::class, 'store'])->name('assignments.store');
         Route::put('assignments/{assignment}', [AssetAssignmentController::class, 'update'])->name('assignments.update');
         Route::post('assignments/{assignment}/return', [AssetAssignmentController::class, 'returnAsset'])->name('assignments.return');
+        Route::post('assignments/{assignment}/remind', [AssetAssignmentController::class, 'remind'])->name('assignments.remind');
         Route::delete('assignments/{assignment}', [AssetAssignmentController::class, 'destroy'])->name('assignments.destroy');
     });
 
@@ -93,11 +95,14 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('issue-verifications/{issue}', [IssueVerificationController::class, 'show'])->name('issue-verifications.show');
         Route::post('issue-verifications/{issue}/accept', [IssueVerificationController::class, 'accept'])->name('issue-verifications.accept');
         Route::post('issue-verifications/{issue}/reject', [IssueVerificationController::class, 'reject'])->name('issue-verifications.reject');
+        Route::post('issue-verifications/{issue}/resolve', [IssueVerificationController::class, 'resolve'])->name('issue-verifications.resolve');
     });
 
     // Notifications (any logged-in user)
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/export', [NotificationController::class, 'export'])->name('notifications.export');
     Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.readAll');
+    Route::post('notifications/{id}/toggle', [NotificationController::class, 'toggle'])->name('notifications.toggle');
     Route::post('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::delete('notifications', [NotificationController::class, 'clear'])->name('notifications.clear');
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -107,6 +112,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('maintenance', [AssetMaintenanceController::class, 'index'])->name('maintenance.index');
         Route::post('maintenance', [AssetMaintenanceController::class, 'store'])->name('maintenance.store');
         Route::put('maintenance/{maintenance}', [AssetMaintenanceController::class, 'update'])->name('maintenance.update');
+        Route::patch('maintenance/{maintenance}/status', [AssetMaintenanceController::class, 'updateStatus'])->name('maintenance.status');
         Route::delete('maintenance/{maintenance}', [AssetMaintenanceController::class, 'destroy'])->name('maintenance.destroy');
     });
 
@@ -119,6 +125,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('settings', [AccountSettingsController::class, 'index'])->name('settings.index');
     Route::put('settings/profile', [AccountSettingsController::class, 'updateProfile'])->name('settings.profile.update');
     Route::put('settings/password', [AccountSettingsController::class, 'updatePassword'])->name('settings.password.update');
+    Route::post('settings/photo', [AccountSettingsController::class, 'updatePhoto'])->name('settings.photo.update');
     Route::delete('settings/photo', [AccountSettingsController::class, 'removePhoto'])->name('settings.photo.destroy');
 
     // Categories, locations, statuses (admin, asset officer)
@@ -144,6 +151,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::middleware('role:administrator')->group(function () {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::post('users/bulk-status', [UserController::class, 'bulkStatus'])->name('users.bulk-status');
+        Route::post('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
         Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });

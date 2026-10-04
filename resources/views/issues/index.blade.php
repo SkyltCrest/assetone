@@ -6,17 +6,13 @@
 
 @section('content')
 
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-    <div>
-        <h3 class="fw-bold mb-1">Report Issues</h3>
-        <p class="text-muted mb-0">If an asset assigned to you is damaged or not working, report it here. An asset officer will verify it before any maintenance is done.</p>
-    </div>
+<x-banner title="Report Issues" text="If an asset assigned to you is damaged or not working, report it here. An asset officer will verify it before any maintenance is done." :keys="['N' => 'new', '/' => 'search']">
     @if($reportableAssets->isNotEmpty())
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportIssueModal">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportIssueModal" data-key="n">
             <i class="bi bi-plus-circle me-2"></i>Report an Issue
         </button>
     @endif
-</div>
+</x-banner>
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
@@ -45,8 +41,10 @@
 @endif
 
 <div class="card content-card p-4">
+    @include('partials.list-filter', ['action' => route('issues.index'), 'placeholder' => 'Search report ID, asset, description...', 'options' => ['pending_verification' => 'Pending Verification', 'accepted' => 'Accepted — Under Maintenance', 'rejected' => 'Rejected', 'resolved' => 'Resolved']])
+
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
                     <th>Report ID</th>
@@ -61,14 +59,14 @@
             <tbody>
                 @forelse($reports as $report)
                     <tr>
-                        <td class="fw-semibold">{{ $report->report_code }}</td>
-                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo'])</td>
+                        <td class="fw-semibold">{{ $report->report_code }}@if($report->photos_count)<span class="photo-count"><i class="bi bi-image"></i>{{ $report->photos_count }}</span>@endif</td>
+                        <td>@include('partials.thumb', ['url' => $report->photoUrl(), 'alt' => 'Damage photo', 'name' => $report->report_code, 'info' => $report->asset->name ?? ''])</td>
                         <td>
                             {{ $report->asset->asset_code ?? '—' }}
                             <span class="text-muted">{{ $report->asset->name ?? '' }}</span>
                         </td>
                         <td>{{ $report->created_at->format('d M Y, g:i A') }}</td>
-                        <td><span class="badge bg-{{ $report->statusColor() }}">{{ $report->statusLabel() }}</span></td>
+                        <td><span class="badge bg-{{ $report->statusColor() }}">{{ $report->statusLabel() }}</span>@if($report->status === 'rejected' && $report->rejection_reason)<i class="bi bi-info-circle info-tip" data-bs-toggle="tooltip" title="{{ $report->rejection_reason }}"></i>@endif</td>
                         <td>{{ $report->verifier->name ?? '—' }}</td>
                         <td class="text-end">
                             <a href="{{ route('issues.show', $report) }}" class="btn btn-sm btn-outline-secondary">
@@ -78,10 +76,10 @@
                     </tr>
                 @empty
                     <tr><td colspan="7">
-                        <div class="text-center py-5">
-                            <i class="bi bi-clipboard-check display-4 text-muted"></i>
-                            <h5 class="mt-3">No Reports Found</h5>
-                            <p class="text-muted">You have not reported any issues yet.</p>
+                        <div class="empty-state">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <h6>No Reports Found</h6>
+                            <span>Use "Report an Issue" if an asset is damaged or faulty.</span>
                         </div>
                     </td></tr>
                 @endforelse
@@ -117,12 +115,14 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">What is wrong with it? <span class="required">*</span></label>
-                        <textarea name="description" class="form-control" rows="4" required
+                        <textarea name="description" id="issueDescription" class="form-control" rows="4" maxlength="600" required
                             placeholder="Describe the damage or fault, e.g. the screen flickers and shuts down after a few minutes.">{{ old('description') }}</textarea>
+                        <div class="form-text text-end" id="issueCount">0 / 600</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Photos of the damage <span class="required">*</span> <span class="text-muted fw-normal">(at least 1, up to {{ $maxPhotos }})</span></label>
                         @include('partials.photo-picker', ['name' => 'photos', 'max' => $maxPhotos, 'required' => true])
+                        <div class="form-text"><i class="bi bi-camera me-1"></i>Click the box, drop pictures onto it, or take a photo. Photos are resized automatically.</div>
                     </div>
                     <p class="text-muted small mb-0">Your complaint will be sent to the asset officer for verification.</p>
                 </div>
@@ -145,3 +145,14 @@
 @endif
 
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var box = document.getElementById('issueDescription'), out = document.getElementById('issueCount');
+    if (!box) return;
+    var show = function () { out.textContent = box.value.length + ' / 600'; };
+    box.addEventListener('input', show); show();
+})();
+</script>
+@endpush

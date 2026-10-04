@@ -16,12 +16,16 @@ class SettingsController extends Controller
         $categorySearch = $request->query('category_search');
         $locationSearch = $request->query('location_search');
         $statusSearch = $request->query('status_search');
+        $locationDepartment = $request->query('location_department');
+        $locationStatus = $request->query('location_status');
 
         $categories = AssetCategory::withCount('assets')
             ->with(['types' => fn ($q) => $q->withCount('assets')])
             ->when($categorySearch, fn ($q) => $q->where(fn ($q2) => $q2
                 ->where('name', 'like', "%{$categorySearch}%")
-                ->orWhere('code', 'like', "%{$categorySearch}%")))
+                ->orWhere('code', 'like', "%{$categorySearch}%")
+                ->orWhere('short_code', 'like', "%{$categorySearch}%")
+                ->orWhereHas('types', fn ($q3) => $q3->where('name', 'like', "%{$categorySearch}%")->orWhere('code', 'like', "%{$categorySearch}%"))))
             ->orderBy('code')
             ->paginate(10, ['*'], 'categoriesPage')
             ->withQueryString();
@@ -34,6 +38,8 @@ class SettingsController extends Controller
                 ->orWhere('building', 'like', "%{$locationSearch}%")
                 ->orWhere('floor', 'like', "%{$locationSearch}%")
                 ->orWhere('room', 'like', "%{$locationSearch}%")))
+            ->when($locationDepartment, fn ($q) => $q->where('department', $locationDepartment))
+            ->when(in_array($locationStatus, ['active', 'inactive'], true), fn ($q) => $q->where('status', $locationStatus))
             ->orderBy('code')
             ->paginate(10, ['*'], 'locationsPage')
             ->withQueryString();
@@ -51,6 +57,13 @@ class SettingsController extends Controller
             'categorySearch' => $categorySearch,
             'locations' => $locations,
             'locationSearch' => $locationSearch,
+            'locationDepartment' => $locationDepartment,
+            'locationStatus' => $locationStatus,
+            'activeCounts' => [
+                'categories' => AssetCategory::where('status', 'active')->count(),
+                'locations' => AssetLocation::where('status', 'active')->count(),
+                'statuses' => AssetStatus::where('status', 'active')->count(),
+            ],
             'statuses' => $statuses,
             'statusSearch' => $statusSearch,
             'categoryTotal' => AssetCategory::count(),

@@ -10,20 +10,28 @@
     var MAX_SIDE = 1280, QUALITY = 0.82;
 
     /* Shrink an image file to a JPEG no larger than MAX_SIDE on its long edge. */
-    function shrink(file) {
+    function shrink(file, crop) {
         return new Promise(function (resolve) {
             if (!/^image\//.test(file.type)) { resolve(null); return; }
             var img = new Image(), url = URL.createObjectURL(file);
             img.onload = function () {
                 URL.revokeObjectURL(url);
-                var scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
-                var canvas = document.createElement('canvas');
-                canvas.width = Math.round(img.width * scale);
-                canvas.height = Math.round(img.height * scale);
-                var ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d');
+                if (crop) {
+                    // Fixed frame (e.g. 800 x 600 for 4:3): scale to cover it, then centre-crop.
+                    canvas.width = crop[0]; canvas.height = crop[1];
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    var cover = Math.max(crop[0] / img.width, crop[1] / img.height), w = img.width * cover, h = img.height * cover;
+                    ctx.drawImage(img, (crop[0] - w) / 2, (crop[1] - h) / 2, w, h);
+                } else {
+                    var scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+                    canvas.width = Math.round(img.width * scale);
+                    canvas.height = Math.round(img.height * scale);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                }
                 canvas.toBlob(function (blob) {
                     if (!blob) { resolve(file); return; }
                     var name = (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg';
@@ -95,6 +103,8 @@
             preview = box.querySelector('[data-photo-preview]'),
             error = box.querySelector('[data-photo-error]'),
             max = parseInt(box.dataset.max || '1', 10),
+            maxMb = parseFloat(box.dataset.maxMb || '0'),
+            crop = box.dataset.crop === '4:3' ? [800, 600] : null,
             files = [],
             existing = preview.innerHTML;   // server-rendered current picture(s)
 
@@ -110,7 +120,13 @@
             input.files = dt.files;
         }
 
+        function announce() {
+            box.dispatchEvent(new CustomEvent('photo:change', { bubbles: true, detail: { count: files.length, url: files.length ? URL.createObjectURL(files[0]) : null } }));
+        }
+
         function render() {
+            preview.classList.toggle('has-photo', files.length > 0);
+            announce();
             if (!files.length) { preview.innerHTML = existing; return; }
             preview.innerHTML = '';
             files.forEach(function (file, i) {
@@ -130,10 +146,12 @@
 
         function add(list) {
             fail('');
-            var incoming = [].slice.call(list);
-            Promise.all(incoming.map(shrink)).then(function (done) {
+            var incoming = [].slice.call(list), tooBig = false;
+            if (maxMb) incoming = incoming.filter(function (f) { var ok = f.size <= maxMb * 1024 * 1024; if (!ok) tooBig = true; return ok; });
+            Promise.all(incoming.map(function (f) { return shrink(f, crop); })).then(function (done) {
                 var good = done.filter(Boolean);
                 if (good.length < incoming.length) fail('Only image files (JPG, PNG, WebP) can be used.');
+                if (tooBig) fail('Photo size must not exceed ' + maxMb + 'MB.');
                 if (max === 1) {
                     if (good.length) files = [good[0]];
                 } else {
@@ -151,6 +169,16 @@
         chooser.addEventListener('change', function () { add(chooser.files); chooser.value = ''; });
 
         box.querySelector('[data-photo-upload]').addEventListener('click', function () { chooser.click(); });
+
+        // Drop a picture onto the preview, or click the empty preview to browse.
+        ['dragenter', 'dragover'].forEach(function (t) { preview.addEventListener(t, function (e) { e.preventDefault(); preview.classList.add('drag'); }); });
+        ['dragleave', 'drop'].forEach(function (t) { preview.addEventListener(t, function (e) { e.preventDefault(); preview.classList.remove('drag'); }); });
+        preview.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) add(e.dataTransfer.files); });
+        preview.addEventListener('click', function (e) {
+            if (e.target.closest('button') || e.target.closest('[data-lightbox]')) return;
+            if (!files.length || max > 1) chooser.click();
+        });
+        preview.style.cursor = 'pointer';
         var camBtn = box.querySelector('[data-photo-camera]');
         if (camBtn) camBtn.addEventListener('click', function () { camera().open(function (file) { add([file]); }); });
 

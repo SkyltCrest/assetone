@@ -17,7 +17,7 @@
     </div>
     <div class="col-md-4 mb-3">
         <label class="form-label">Category Code <span class="required">*</span></label>
-        <input type="text" name="short_code" value="{{ $category->short_code ?? '' }}" class="form-control text-uppercase font-monospace fw-semibold" placeholder="e.g. C" maxlength="5" pattern="[A-Za-z0-9]{1,5}" title="1 to 5 letters or numbers" required>
+        <input type="text" name="short_code" value="{{ $category->short_code ?? '' }}" class="form-control text-uppercase font-monospace fw-semibold" placeholder="e.g. C" maxlength="5" pattern="[A-Za-z]{1,5}" title="1 to 5 letters" required>
         <div class="form-text">Short code (e.g. C, OE, F, V)</div>
     </div>
 </div>
@@ -34,7 +34,7 @@
             <div class="row g-2 mb-2 align-items-center" data-type-row>
                 <input type="hidden" name="types[{{ $i }}][id]" value="{{ $type->id }}">
                 <div class="col-7"><input type="text" name="types[{{ $i }}][name]" value="{{ $type->name }}" class="form-control" placeholder="Type name (e.g. Laptop)" required></div>
-                <div class="col-3"><input type="text" name="types[{{ $i }}][code]" value="{{ $type->code }}" class="form-control text-uppercase font-monospace fw-semibold" placeholder="Code" maxlength="5" pattern="[A-Za-z0-9]{1,5}" title="1 to 5 letters or numbers" required></div>
+                <div class="col-3"><input type="text" name="types[{{ $i }}][code]" value="{{ $type->code }}" class="form-control text-uppercase font-monospace fw-semibold" placeholder="Code" maxlength="5" pattern="[A-Za-z]{1,5}" title="1 to 5 letters" required></div>
                 <div class="col-2"><button type="button" class="btn btn-outline-danger w-100" data-type-remove title="Remove type" @if(($type->assets_count ?? 0) > 0) disabled @endif><i class="bi bi-x-lg"></i></button></div>
             </div>
         @endforeach

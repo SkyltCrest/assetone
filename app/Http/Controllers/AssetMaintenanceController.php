@@ -32,6 +32,8 @@ class AssetMaintenanceController extends Controller
         $search = $request->query('search');
         $status = $request->query('status');
         $type = $request->query('type');
+        $sort = (string) $request->query('sort', '');
+        $dir = $request->query('dir') === 'desc' ? 'desc' : 'asc';
         $perPage = in_array((int) $request->query('per_page'), [5, 10, 25, 50], true) ? (int) $request->query('per_page') : 10;
 
         $query = AssetMaintenance::with('asset.photo')
@@ -41,6 +43,13 @@ class AssetMaintenanceController extends Controller
             ->when($status === 'overdue', fn ($q) => $q->overdue())
             ->when($status && $status !== 'overdue', fn ($q) => $q->where('status', $status))
             ->when($type, fn ($q) => $q->where('type', $type))
+            ->when($sort === 'code', fn ($q) => $q->orderBy('maintenance_code', $dir))
+            ->when($sort === 'asset', fn ($q) => $q->orderBy(Asset::select('asset_code')->whereColumn('assets.id', 'asset_maintenances.asset_id'), $dir))
+            ->when($sort === 'name', fn ($q) => $q->orderBy(Asset::select('name')->whereColumn('assets.id', 'asset_maintenances.asset_id'), $dir))
+            ->when($sort === 'type', fn ($q) => $q->orderBy('type', $dir))
+            ->when($sort === 'date', fn ($q) => $q->orderBy('maintenance_date', $dir))
+            ->when($sort === 'next', fn ($q) => $q->orderBy('next_maintenance_date', $dir))
+            ->when($sort === 'status', fn ($q) => $q->orderBy('status', $dir))
             ->orderByDesc('maintenance_date')
             ->orderByDesc('id');
 
@@ -80,6 +89,8 @@ class AssetMaintenanceController extends Controller
             'status' => $status,
             'type' => $type,
             'perPage' => $perPage,
+            'sort' => $sort,
+            'dir' => $dir,
             'chips' => [
                 '' => ['All', AssetMaintenance::count()],
                 'pending' => ['Pending', AssetMaintenance::where('status', 'pending')->count()],

@@ -29,7 +29,7 @@ class AssignmentVerificationController extends Controller
                 ->whereHas('asset', fn ($a) => $a->where('name', 'like', "%{$search}%")->orWhere('asset_code', 'like', "%{$search}%"))
                 ->orWhereHas('assignedBy', fn ($u) => $u->where('name', 'like', "%{$search}%"))))
             ->when($status, fn ($q) => $q->where('status', $status))
-            ->orderByRaw("FIELD(status, 'pending_verification', 'assigned', 'rejected', 'unassigned')")
+            ->orderByRaw("CASE status WHEN 'pending_verification' THEN 0 WHEN 'assigned' THEN 1 WHEN 'rejected' THEN 2 WHEN 'unassigned' THEN 3 ELSE 4 END")
             ->orderByDesc('assigned_date')
             ->paginate(10)
             ->withQueryString();

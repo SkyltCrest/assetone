@@ -62,6 +62,24 @@
     document.querySelectorAll('table[data-sortable]').forEach(function (table) {
         var tb = table.tBodies[0], head = table.tHead && table.tHead.rows[0];
         if (!tb || !head) return;
+
+        // Lists sorted by the server: a header click reloads the page in that order,
+        // so the sort covers every record rather than the rows on this page.
+        if (table.dataset.serverSort !== undefined) {
+            [].slice.call(head.cells).forEach(function (th) {
+                var k = th.dataset.sortKey; if (!k) return;
+                th.classList.add('sortable'); th.title = 'Click to sort';
+                if (table.dataset.sort === k) th.classList.add(table.dataset.dir === 'desc' ? 'desc' : 'asc');
+                th.addEventListener('click', function () {
+                    var url = new URL(location.href);
+                    url.searchParams.set('sort', k);
+                    url.searchParams.set('dir', table.dataset.sort === k && table.dataset.dir !== 'desc' ? 'desc' : 'asc');
+                    url.searchParams.delete('page');
+                    location.href = url.toString();
+                });
+            });
+            return;
+        }
         var state = { i: null, dir: 1 };
         var key = function (cell) {
             if (!cell) return '';

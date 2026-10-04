@@ -55,13 +55,14 @@
 </div>
 
 @php
-    $keep = array_filter(['search' => $search, 'type' => $type, 'per_page' => $perPage !== 10 ? $perPage : null]);
+    $keep = array_filter(['search' => $search, 'type' => $type, 'per_page' => $perPage !== 10 ? $perPage : null, 'sort' => $sort ?: null, 'dir' => $sort ? $dir : null]);
     $view = fn (array $extra) => route('maintenance.index', array_filter(array_merge($keep, $extra)));
 @endphp
 <div class="card content-card p-4" id="recordsCard">
     <form method="GET" action="{{ route('maintenance.index') }}" class="row g-3 mb-3" id="mtFilters">
         @if($status)<input type="hidden" name="status" value="{{ $status }}">@endif
         <input type="hidden" name="per_page" value="{{ $perPage }}">
+        @if($sort)<input type="hidden" name="sort" value="{{ $sort }}"><input type="hidden" name="dir" value="{{ $dir }}">@endif
         <div class="col-12 col-md-7">
             <label class="form-label fw-semibold">Search</label>
             <div class="input-group">
@@ -102,11 +103,11 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0 text-nowrap" data-sortable>
+        <table class="table table-hover align-middle mb-0 text-nowrap" data-sortable data-server-sort data-sort="{{ $sort }}" data-dir="{{ $dir }}">
             <thead>
                 <tr>
-                    <th>No.</th><th>Picture</th><th>Maintenance ID</th><th>Asset ID</th><th>Asset Name</th><th>Maintenance Type</th>
-                    <th>Maintenance Date</th><th>Next Maintenance</th><th>Status</th><th>Due Status</th><th class="text-end">Action</th>
+                    <th>No.</th><th>Picture</th><th data-sort-key="code">Maintenance ID</th><th data-sort-key="asset">Asset ID</th><th data-sort-key="name">Asset Name</th><th data-sort-key="type">Maintenance Type</th>
+                    <th data-sort-key="date">Maintenance Date</th><th data-sort-key="next">Next Maintenance</th><th data-sort-key="status">Status</th><th>Due Status</th><th class="text-end">Action</th>
                 </tr>
             </thead>
             <tbody>

@@ -67,17 +67,17 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0" data-sortable>
+        <table class="table table-hover align-middle mb-0" data-sortable data-server-sort data-sort="{{ $sort }}" data-dir="{{ $dir }}">
             <thead>
                 <tr>
                     <th>No.</th>
                     <th>Photo</th>
-                    <th>Asset Code</th>
-                    <th>Asset Name</th>
-                    <th>PIC (Person In Charge)</th>
-                    <th>Assigned Date</th>
-                    <th>Due Date</th>
-                    <th>Status</th>
+                    <th data-sort-key="code">Asset Code</th>
+                    <th data-sort-key="name">Asset Name</th>
+                    <th data-sort-key="pic">PIC (Person In Charge)</th>
+                    <th data-sort-key="assigned">Assigned Date</th>
+                    <th data-sort-key="due">Due Date</th>
+                    <th data-sort-key="status">Status</th>
                     <th class="text-end">Action</th>
                 </tr>
             </thead>

@@ -62,7 +62,7 @@
                 <p class="text-muted mb-0">Manage asset categories and their asset types.</p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-secondary" data-export="asset-categories"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <a href="{{ request()->fullUrlWithQuery(['export' => 'category']) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" data-key="n">
                     <i class="bi bi-plus-lg me-2"></i>Add New Category
                 </button>
@@ -133,7 +133,7 @@
                 <p class="text-muted mb-0">Create and manage physical locations for registered assets.</p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-secondary" data-export="asset-locations"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <a href="{{ request()->fullUrlWithQuery(['export' => 'location']) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLocationModal" data-key="n">
                     <i class="bi bi-plus-lg me-2"></i>Add New Location
                 </button>
@@ -212,7 +212,7 @@
                 <p class="text-muted mb-0">Create and manage the statuses assets can be assigned.</p>
             </div>
             <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-secondary" data-export="asset-statuses"><i class="bi bi-download me-2"></i>Export CSV</button>
+                <a href="{{ request()->fullUrlWithQuery(['export' => 'status']) }}" class="btn btn-secondary"><i class="bi bi-download me-2"></i>Export CSV</a>
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addStatusModal" data-key="n">
                     <i class="bi bi-plus-lg me-2"></i>Add New Status
                 </button>

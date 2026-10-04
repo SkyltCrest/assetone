@@ -21,6 +21,8 @@ class AssetAssignmentController extends Controller
     {
         $search = $request->query('search');
         $status = $request->query('status');
+        $sort = (string) $request->query('sort', '');
+        $dir = $request->query('dir') === 'desc' ? 'desc' : 'asc';
 
         $query = AssetAssignment::with(['asset.photo', 'asset.assignments.custodian', 'custodian'])
             ->when($search, fn ($q) => $q->where(fn ($q2) => $q2
@@ -28,6 +30,12 @@ class AssetAssignmentController extends Controller
                 ->orWhereHas('custodian', fn ($q3) => $q3->where('name', 'like', "%{$search}%"))))
             ->when($status === 'overdue', fn ($q) => $q->overdue())
             ->when($status && $status !== 'overdue', fn ($q) => $q->where('status', $status))
+            ->when($sort === 'code', fn ($q) => $q->orderBy(Asset::select('asset_code')->whereColumn('assets.id', 'asset_assignments.asset_id'), $dir))
+            ->when($sort === 'name', fn ($q) => $q->orderBy(Asset::select('name')->whereColumn('assets.id', 'asset_assignments.asset_id'), $dir))
+            ->when($sort === 'pic', fn ($q) => $q->orderBy(User::select('name')->whereColumn('users.id', 'asset_assignments.custodian_id'), $dir))
+            ->when($sort === 'assigned', fn ($q) => $q->orderBy('assigned_date', $dir))
+            ->when($sort === 'due', fn ($q) => $q->orderBy('due_date', $dir))
+            ->when($sort === 'status', fn ($q) => $q->orderBy('status', $dir))
             ->orderByDesc('assigned_date')
             ->orderByDesc('id');
 
@@ -79,6 +87,8 @@ class AssetAssignmentController extends Controller
             'assignments' => $assignments,
             'search' => $search,
             'status' => $status,
+            'sort' => $sort,
+            'dir' => $dir,
             'totalCount' => AssetAssignment::count(),
             'pendingCount' => AssetAssignment::where('status', AssetAssignment::STATUS_PENDING)->count(),
             'assignedCount' => AssetAssignment::where('status', AssetAssignment::STATUS_ASSIGNED)->count(),

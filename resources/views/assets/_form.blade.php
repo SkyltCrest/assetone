@@ -124,10 +124,6 @@
 
         <div class="card form-card p-4 mb-4" data-form-card>
             <h5 class="section-title mb-4"><i class="bi bi-geo-alt me-2"></i>Asset Location</h5>
-            <div class="info-box location-info">
-                <i class="bi bi-info-circle-fill"></i>
-                <div><strong>Location is where the asset physically sits.</strong><span>For example "IT Staff Room", "Finance Office" or "Server Room". It can change when the asset is moved.</span></div>
-            </div>
             <div class="row g-4">
                 <div class="col-md-6">
                     <label class="form-label" for="department">Department <span class="required">*</span></label>
@@ -156,10 +152,6 @@
 
         <div class="card form-card p-4 mb-4" data-form-card>
             <h5 class="section-title mb-4"><i class="bi bi-person-check me-2"></i>Asset Custodian</h5>
-            <div class="info-box custodian-info">
-                <i class="bi bi-info-circle-fill"></i>
-                <div><strong>The custodian is the person responsible for the asset.</strong><span>The PIC (Person In Charge) is chosen from User Management and can be changed when staff move.</span></div>
-            </div>
             <div class="row g-4">
                 <div class="col-md-6">
                     <label class="form-label" for="custodian">Person in Charge (PIC) @unless($asset->exists)<span class="required">*</span>@endunless</label>

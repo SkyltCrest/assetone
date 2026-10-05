@@ -41,7 +41,7 @@
             </div>
         </div>
         <div class="col-sm-6 col-xl-2">
-            <select name="role" class="form-select" onchange="this.form.submit()" aria-label="Filter by role">
+            <select name="role" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by role">
                 <option value="">All Roles</option>
                 @foreach($roles as $value => $label)
                     <option value="{{ $value }}" @selected($role === $value)>{{ $label }}</option>
@@ -49,7 +49,7 @@
             </select>
         </div>
         <div class="col-sm-6 col-xl-2">
-            <select name="department" class="form-select" onchange="this.form.submit()" aria-label="Filter by department">
+            <select name="department" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by department">
                 <option value="">All Departments</option>
                 @foreach($departments as $option)
                     <option value="{{ $option }}" @selected($department === $option)>{{ $option }}</option>
@@ -57,14 +57,14 @@
             </select>
         </div>
         <div class="col-sm-6 col-xl-2">
-            <select name="status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+            <select name="status" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by status">
                 <option value="">All Status</option>
                 <option value="active" @selected($status === 'active')>Active</option>
                 <option value="inactive" @selected($status === 'inactive')>Inactive</option>
             </select>
         </div>
         <div class="col-sm-6 col-xl-2">
-            <select name="sort" class="form-select" onchange="this.form.submit()" aria-label="Sort users">
+            <select name="sort" class="form-select" onchange="this.form.requestSubmit()" aria-label="Sort users">
                 @foreach($sorts as $value => $label)
                     <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
                 @endforeach
@@ -73,7 +73,7 @@
     </form>
 
     {{-- Member cards --}}
-    <div class="card-grid" id="userCards">
+    <div class="card-grid" id="userCards" data-live>
         @forelse($users as $i => $user)
             @php
                 $on = $user->status === 'active';
@@ -116,7 +116,7 @@
         @endforelse
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2" data-live>
         <small class="text-muted">Showing {{ $users->firstItem() ?? 0 }} to {{ $users->lastItem() ?? 0 }} of {{ $users->total() }} users</small>
         {{ $users->links() }}
     </div>
@@ -267,6 +267,8 @@
         grid.classList.toggle('sel-mode', ids.length > 0);
         grid.querySelectorAll('.member-card').forEach(function (c) { c.classList.toggle('selected', !!sel[c.dataset.id]); });
     }
+    // A refreshed list shows other people, so the selection starts again.
+    document.addEventListener('ao:live', function () { sel = {}; refresh(); });
     grid.addEventListener('click', function (e) {
         var card = e.target.closest('.member-card'); if (!card) return;
         if (e.target.closest('.m-check')) { if (sel[card.dataset.id]) delete sel[card.dataset.id]; else sel[card.dataset.id] = 1; refresh(); return; }

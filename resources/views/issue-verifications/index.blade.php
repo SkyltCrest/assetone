@@ -37,7 +37,7 @@
 <div class="card content-card p-4">
     @include('partials.list-filter', ['action' => route('issue-verifications.index'), 'placeholder' => 'Search report ID, asset, reporter...', 'options' => ['pending_verification' => 'Pending Verification', 'accepted' => 'Accepted — Under Maintenance', 'rejected' => 'Rejected', 'resolved' => 'Resolved']])
 
-    <div class="table-responsive">
+    <div class="table-responsive" data-live>
         <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
@@ -87,7 +87,7 @@
         </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
         <small class="text-muted">Showing {{ $reports->firstItem() ?? 0 }} to {{ $reports->lastItem() ?? 0 }} of {{ $reports->total() }}</small>
         {{ $reports->links() }}
     </div>

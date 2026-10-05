@@ -24,11 +24,13 @@
     <form method="GET" action="{{ route('reports.index') }}" id="reportFilters">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold mb-0"><i class="bi bi-funnel me-2"></i>Filters</h5>
+            <span data-live>
             @if($activeFilters->isNotEmpty())
                 <a href="{{ route('reports.index') }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-x-circle me-1"></i>Clear all
                 </a>
             @endif
+            </span>
         </div>
 
         <div class="row g-3">
@@ -153,6 +155,7 @@
 </div>
 
 {{-- Active filter summary (also visible on the on-screen report) --}}
+<div data-live>
 @if($activeFilters->isNotEmpty())
     <div class="mb-3 d-flex flex-wrap align-items-center gap-2">
         <span class="small text-muted fw-semibold">Applied:</span>
@@ -161,13 +164,14 @@
         @endforeach
     </div>
 @endif
+</div>
 
 <div class="row g-4 mb-4">
     <div class="col-sm-6 col-lg-3">
         <div class="stat-card d-flex justify-content-between align-items-center">
             <div>
                 <p class="text-muted small text-uppercase fw-medium mb-1">Assets in Report</p>
-                <h3 class="fw-bold mb-0">{{ number_format($reportCount) }}</h3>
+                <h3 class="fw-bold mb-0" data-live>{{ number_format($reportCount) }}</h3>
             </div>
             <div class="stat-icon icon-blue"><i class="bi bi-box-seam"></i></div>
         </div>
@@ -176,7 +180,7 @@
         <div class="stat-card d-flex justify-content-between align-items-center">
             <div>
                 <p class="text-muted small text-uppercase fw-medium mb-1">Assigned</p>
-                <h3 class="fw-bold mb-0">{{ number_format($assignedCount) }}</h3>
+                <h3 class="fw-bold mb-0" data-live>{{ number_format($assignedCount) }}</h3>
             </div>
             <div class="stat-icon icon-green"><i class="bi bi-person-check"></i></div>
         </div>
@@ -185,7 +189,7 @@
         <div class="stat-card d-flex justify-content-between align-items-center">
             <div>
                 <p class="text-muted small text-uppercase fw-medium mb-1">Unassigned</p>
-                <h3 class="fw-bold mb-0">{{ number_format($unassignedCount) }}</h3>
+                <h3 class="fw-bold mb-0" data-live>{{ number_format($unassignedCount) }}</h3>
             </div>
             <div class="stat-icon icon-orange"><i class="bi bi-person-dash"></i></div>
         </div>
@@ -194,14 +198,14 @@
         <div class="stat-card d-flex justify-content-between align-items-center">
             <div>
                 <p class="text-muted small text-uppercase fw-medium mb-1">Total Value (RM)</p>
-                <h3 class="fw-bold mb-0">{{ number_format($totalValue, 2) }}</h3>
+                <h3 class="fw-bold mb-0" data-live>{{ number_format($totalValue, 2) }}</h3>
             </div>
             <div class="stat-icon icon-blue"><i class="bi bi-cash-stack"></i></div>
         </div>
     </div>
 </div>
 
-<div class="card content-card p-4">
+<div class="card content-card p-4" data-live>
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
         <h5 class="fw-bold mb-0">Asset Summary</h5>
         <span class="small text-muted">{{ number_format($reportCount) }} {{ \Illuminate\Support\Str::plural('asset', $reportCount) }}</span>
@@ -299,7 +303,7 @@
             var del = document.createElement('button'); del.type = 'button'; del.setAttribute('aria-label', 'Delete'); del.innerHTML = '<i class="bi bi-x"></i>';
             del.addEventListener('click', function (e) { e.stopPropagation(); var l = read(); l.splice(i, 1); write(l); render(); });
             chip.appendChild(del);
-            chip.addEventListener('click', function () { location.href = @json(route('reports.index')) + '?' + it.q; });
+            chip.addEventListener('click', function () { window.aoLive.go(@json(route('reports.index')) + '?' + it.q); });
             list.appendChild(chip);
         });
     }
@@ -323,6 +327,7 @@
             if (window.aoToast) window.aoToast('Choose at least one column for the report.');
         }
     });
+    document.addEventListener('ao:live', function () { apply.classList.remove('dirty'); });
     render();
 })();
 </script>

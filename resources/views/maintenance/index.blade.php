@@ -72,7 +72,7 @@
         </div>
         <div class="col-12 col-md-5">
             <label class="form-label fw-semibold">Maintenance Type</label>
-            <select name="type" class="form-select" onchange="this.form.submit()">
+            <select name="type" class="form-select" onchange="this.form.requestSubmit()">
                 <option value="">All Maintenance Types</option>
                 @foreach($types as $value => $label)
                     <option value="{{ $value }}" @selected($type === $value)>{{ $label }}</option>
@@ -83,17 +83,19 @@
 
     {{-- Status chips, rows per page, table / board switch, export --}}
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <div class="chips mb-0">
+        <div class="chips mb-0" data-live>
             @foreach($chips as $value => [$label, $count])
                 <a href="{{ $view(['status' => $value ?: null]) }}" class="chip {{ $value === 'overdue' ? 'chip-overdue' : '' }} {{ (string) $status === (string) $value ? 'active' : '' }}">{{ $label }}<b>{{ $count }}</b></a>
             @endforeach
         </div>
         <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
-            <select class="form-select" style="width:auto;min-height:40px" aria-label="Rows per page" onchange="var f=document.getElementById('mtFilters');f.per_page.value=this.value;f.submit()">
+            <span class="live-inline" data-live>
+            <select class="form-select" style="width:auto;min-height:40px" aria-label="Rows per page" onchange="var f=document.getElementById('mtFilters');f.per_page.value=this.value;f.requestSubmit()">
                 @foreach([5, 10, 25, 50] as $size)
                     <option value="{{ $size }}" @selected($perPage === $size)>{{ $size }} rows</option>
                 @endforeach
             </select>
+            </span>
             <div class="seg" id="viewSeg">
                 <button type="button" data-view="table" title="Table view"><i class="bi bi-list-ul"></i></button>
                 <button type="button" data-view="board" title="Board view" data-key="b"><i class="bi bi-kanban"></i></button>
@@ -102,7 +104,7 @@
         </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive" data-live>
         <table class="table table-hover align-middle mb-0 text-nowrap" data-sortable data-server-sort data-sort="{{ $sort }}" data-dir="{{ $dir }}">
             <thead>
                 <tr>
@@ -152,7 +154,7 @@
     </div>
 
     {{-- Board view: the same records, grouped by status. Drag a card to change its status. --}}
-    <div class="board" id="board" data-url="{{ route('maintenance.status', '__ID__') }}">
+    <div class="board" id="board" data-live data-url="{{ route('maintenance.status', '__ID__') }}">
         @foreach($statuses as $value => $label)
             @continue($status && $status !== 'overdue' && $status !== $value)
             @php $cards = $maintenances->getCollection()->where('status', $value); @endphp
@@ -189,7 +191,7 @@
         @endforeach
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 pager">
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2 pager" data-live>
         <small class="text-muted">Showing {{ $maintenances->firstItem() ?? 0 }} to {{ $maintenances->lastItem() ?? 0 }} of {{ $maintenances->total() }} records</small>
         {{ $maintenances->links() }}
     </div>

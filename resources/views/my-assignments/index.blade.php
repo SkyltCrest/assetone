@@ -37,7 +37,7 @@
 <div class="card content-card p-4">
     @include('partials.list-filter', ['action' => route('my-assignments.index'), 'placeholder' => 'Search asset code, name, assigned by...', 'options' => ['pending_verification' => 'Pending', 'assigned' => 'Accepted', 'rejected' => 'Rejected', 'unassigned' => 'Returned']])
 
-    <div class="table-responsive">
+    <div class="table-responsive" data-live>
         <table class="table table-hover align-middle mb-0" data-sortable>
             <thead>
                 <tr>
@@ -94,7 +94,7 @@
         </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
         <small class="text-muted">Showing {{ $assignments->firstItem() ?? 0 }} to {{ $assignments->lastItem() ?? 0 }} of {{ $assignments->total() }}</small>
         {{ $assignments->links() }}
     </div>

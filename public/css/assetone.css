@@ -729,6 +729,10 @@ td .badge-location-code,td .badge-code{font-size:.78rem;letter-spacing:.03em}
 .table tbody tr.row-new td{animation:flashRow 1.8s ease-out}
 .tab-glide{position:absolute;top:.4rem;bottom:.4rem;left:0;width:0;border-radius:12px;background:linear-gradient(135deg,#1e88e5,#1565c0);box-shadow:0 6px 18px rgba(30,136,229,.4);transition:transform .45s cubic-bezier(.22,1,.36,1),width .45s cubic-bezier(.22,1,.36,1);z-index:0;list-style:none}
 .nav-tabs.has-glide .nav-link.active{background:transparent;box-shadow:none;color:#fff}
+/* Live lists: parts being refreshed dim briefly; .live-inline wraps a control without adding a box. */
+.main-content [data-live]{transition:opacity .15s}
+.main-content.live-busy [data-live]{opacity:.55;pointer-events:none}
+.live-inline{display:contents}
 .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,.4);transform:scale(0);animation:rip .6s ease-out;pointer-events:none}
 .empty-state i{animation:floaty 3s ease-in-out infinite}
 .pic-wrap{display:flex;align-items:center;gap:.7rem}

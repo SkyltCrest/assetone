@@ -490,7 +490,9 @@
         function move(a) {
             a = a || tabs.querySelector('.nav-link.active'); if (!a) return;
             var li = a.parentElement;
-            glide.style.width = li.offsetWidth + 'px'; glide.style.transform = 'translateX(' + li.offsetLeft + 'px)';
+            // The tabs wrap onto more rows on a narrow screen, so follow the tab's row as well as its column.
+            glide.style.width = li.offsetWidth + 'px'; glide.style.height = li.offsetHeight + 'px'; glide.style.bottom = 'auto';
+            glide.style.transform = 'translate(' + li.offsetLeft + 'px,' + li.offsetTop + 'px)';
         }
         glide.style.transition = 'none'; move();
         requestAnimationFrame(function () { requestAnimationFrame(function () { glide.style.transition = ''; }); });

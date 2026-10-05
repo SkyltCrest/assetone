@@ -73,10 +73,10 @@
             <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
                 <input type="hidden" name="tab" value="category">
                 <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="category_search" value="{{ $categorySearch }}" class="form-control" placeholder="Search category name, code or type..."></div>
-                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $categories->total() }} categor{{ $categories->total() === 1 ? 'y' : 'ies' }} found</span>
+                <span class="text-muted ms-auto small" data-live><i class="bi bi-info-circle me-1"></i>{{ $categories->total() }} categor{{ $categories->total() === 1 ? 'y' : 'ies' }} found</span>
             </form>
 
-            <div class="table-responsive">
+            <div class="table-responsive" data-live>
                 <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
@@ -118,7 +118,7 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
                 <small class="text-muted">Showing {{ $categories->firstItem() ?? 0 }} to {{ $categories->lastItem() ?? 0 }} of {{ $categories->total() }} categories</small>
                 {{ $categories->links() }}
             </div>
@@ -144,21 +144,21 @@
             <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
                 <input type="hidden" name="tab" value="location">
                 <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="location_search" value="{{ $locationSearch }}" class="form-control" placeholder="Search location name or code..."></div>
-                <select name="location_department" class="form-select" onchange="this.form.submit()" aria-label="Filter by department">
+                <select name="location_department" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by department">
                     <option value="">All Departments</option>
                     @foreach(config('assetone.departments') as $department)
                         <option value="{{ $department }}" @selected($locationDepartment === $department)>{{ $department }}</option>
                     @endforeach
                 </select>
-                <select name="location_status" class="form-select" onchange="this.form.submit()" aria-label="Filter by status">
+                <select name="location_status" class="form-select" onchange="this.form.requestSubmit()" aria-label="Filter by status">
                     <option value="">All Status</option>
                     <option value="active" @selected($locationStatus === 'active')>Active</option>
                     <option value="inactive" @selected($locationStatus === 'inactive')>Inactive</option>
                 </select>
-                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $locations->total() }} location(s) found</span>
+                <span class="text-muted ms-auto small" data-live><i class="bi bi-info-circle me-1"></i>{{ $locations->total() }} location(s) found</span>
             </form>
 
-            <div class="table-responsive">
+            <div class="table-responsive" data-live>
                 <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
@@ -193,7 +193,7 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
                 <small class="text-muted">Showing {{ $locations->firstItem() ?? 0 }} to {{ $locations->lastItem() ?? 0 }} of {{ $locations->total() }} locations</small>
                 {{ $locations->links() }}
             </div>
@@ -219,10 +219,10 @@
             <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
                 <input type="hidden" name="tab" value="status">
                 <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="status_search" value="{{ $statusSearch }}" class="form-control" placeholder="Search status..."></div>
-                <span class="text-muted ms-auto small"><i class="bi bi-info-circle me-1"></i>{{ $statuses->total() }} status(es) found</span>
+                <span class="text-muted ms-auto small" data-live><i class="bi bi-info-circle me-1"></i>{{ $statuses->total() }} status(es) found</span>
             </form>
 
-            <div class="table-responsive">
+            <div class="table-responsive" data-live>
                 <table class="table table-hover align-middle" data-sortable>
                     <thead>
                         <tr>
@@ -257,7 +257,7 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
                 <small class="text-muted">Showing {{ $statuses->firstItem() ?? 0 }} to {{ $statuses->lastItem() ?? 0 }} of {{ $statuses->total() }} statuses</small>
                 {{ $statuses->links() }}
             </div>
@@ -457,7 +457,7 @@
 @push('scripts')
 <script>
     // Asset type rows inside the category pop-ups: add / remove, with stable field indexes.
-    document.querySelectorAll('[data-types-editor]').forEach(function (editor) {
+    function typesEditors(root) { root.querySelectorAll('[data-types-editor]').forEach(function (editor) {
         var list = editor.querySelector('[data-types-list]');
         var next = list.querySelectorAll('[data-type-row]').length;
 
@@ -480,7 +480,9 @@
             if (btn && !btn.disabled) btn.closest('[data-type-row]').remove();
         });
         if (!next) addRow();
-    });
+    }); }
+    typesEditors(document);
+    document.addEventListener('ao:live', function (e) { e.detail.modals.forEach(typesEditors); });
 
     // Remember the last tab, and slide a highlight between the tabs.
     (function () {

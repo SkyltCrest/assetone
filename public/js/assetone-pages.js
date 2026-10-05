@@ -14,10 +14,12 @@
         if (!/^[\d,]+(\.\d+)?$/.test(raw) || !to) return;
         var dec = (raw.split('.')[1] || '').length, t0 = performance.now();
         var fmt = function (v) { return v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); };
+        var shown = raw;
         (function f(t) {
+            if (el.textContent !== shown) return;              // a live refresh has put a new figure in
             var p = Math.min((t - t0) / 700, 1);
-            el.textContent = fmt(to * (1 - Math.pow(1 - p, 3)));
-            if (p < 1) requestAnimationFrame(f); else el.textContent = raw;
+            el.textContent = shown = p < 1 ? fmt(to * (1 - Math.pow(1 - p, 3))) : raw;
+            if (p < 1) requestAnimationFrame(f);
         })(t0);
     });
 
@@ -52,15 +54,19 @@
     }
 
     /* ---------- Row stagger ---------- */
-    document.querySelectorAll('.main-content table tbody').forEach(function (tb) {
-        [].slice.call(tb.rows).forEach(function (r, i) {
-            if (r.classList.contains('row-in')) return;
-            r.classList.add('row-stagger'); r.style.setProperty('--i', Math.min(i, 12));
+    function staggerRows(root) {
+        root.querySelectorAll('table tbody').forEach(function (tb) {
+            [].slice.call(tb.rows).forEach(function (r, i) {
+                if (r.classList.contains('row-in')) return;
+                r.classList.add('row-stagger'); r.style.setProperty('--i', Math.min(i, 12));
+            });
         });
-    });
+    }
+    var mainEl = document.querySelector('.main-content');
+    if (mainEl) staggerRows(mainEl);
 
     /* ---------- Click-to-sort headers (sorts the rows shown on this page) ---------- */
-    document.querySelectorAll('table[data-sortable]').forEach(function (table) {
+    function sortableTables(root) { root.querySelectorAll('table[data-sortable]').forEach(function (table) {
         var tb = table.tBodies[0], head = table.tHead && table.tHead.rows[0];
         if (!tb || !head) return;
 
@@ -76,7 +82,7 @@
                     url.searchParams.set('sort', k);
                     url.searchParams.set('dir', table.dataset.sort === k && table.dataset.dir !== 'desc' ? 'desc' : 'asc');
                     url.searchParams.delete('page');
-                    location.href = url.toString();
+                    liveGo(url.toString(), true);
                 });
             });
             return;
@@ -102,7 +108,8 @@
                 });
             });
         });
-    });
+    }); }
+    sortableTables(document);
 
     /* ---------- Export the rows on screen as CSV ---------- */
     document.addEventListener('click', function (e) {
@@ -213,5 +220,115 @@
     });
 
     /* ---------- Tooltips ---------- */
-    if (window.bootstrap) document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) { bootstrap.Tooltip.getOrCreateInstance(el); });
+    function tooltips(root) {
+        if (window.bootstrap) root.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) { bootstrap.Tooltip.getOrCreateInstance(el); });
+    }
+    tooltips(document);
+
+    /* ---------- Live lists ----------
+       Filters, searches, sort, status chips and page links fetch the page in the
+       background and swap only the parts marked data-live (the list, its counts
+       and its pager), so the rest of the page stays put. Anything that does not
+       fit (no marked parts, a redirect elsewhere, a failed request) falls back
+       to an ordinary page load. After a swap, "ao:live" fires on document with
+       detail.regions (the refreshed parts) and detail.modals (new row pop-ups). */
+    var liveSeq = 0;
+    function liveParts(doc) { return [].slice.call(doc.querySelectorAll('.main-content [data-live]')); }
+    function getForms(doc) {
+        return [].slice.call(doc.querySelectorAll('.main-content form')).filter(function (f) { return (f.getAttribute('method') || 'get').toLowerCase() === 'get'; });
+    }
+    function fields(form) { return [].slice.call(form.elements).filter(function (x) { return x.type !== 'hidden' && x.tagName !== 'BUTTON'; }); }
+    // Bring a filter form in line with the page just loaded (chips and Reset change filters too).
+    function syncForm(mine, theirs) {
+        mine.querySelectorAll('input[type=hidden]').forEach(function (x) { x.remove(); });
+        [].slice.call(theirs.querySelectorAll('input[type=hidden]')).reverse().forEach(function (x) { mine.prepend(document.importNode(x, true)); });
+        var a = fields(mine), b = fields(theirs);
+        if (a.length !== b.length) return;
+        a.forEach(function (x, i) {
+            if (x === document.activeElement) return;
+            if (x.type === 'checkbox' || x.type === 'radio') x.checked = b[i].checked; else x.value = b[i].value;
+        });
+    }
+    function liveApply(doc) {
+        var mine = liveParts(document), theirs = liveParts(doc), modals = [];
+        if (!theirs.length || theirs.length !== mine.length) return false;
+
+        // Row pop-ups: add the ones for the new rows, drop the ones whose rows have gone.
+        [].slice.call(doc.querySelectorAll('.main-content .modal[id]')).forEach(function (m) {
+            if (document.getElementById(m.id)) return;
+            var n = document.importNode(m, true);
+            n.setAttribute('data-page-modal', ''); document.body.appendChild(n); modals.push(n);
+        });
+        document.querySelectorAll('.modal[data-page-modal][id]').forEach(function (m) {
+            if (doc.getElementById(m.id)) return;
+            var inst = window.bootstrap && bootstrap.Modal.getInstance(m);
+            if (inst) inst.dispose();
+            m.remove();
+        });
+
+        mine.forEach(function (el, i) {
+            if (window.bootstrap) el.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (t) { var tip = bootstrap.Tooltip.getInstance(t); if (tip) tip.dispose(); });
+            var n = document.importNode(theirs[i], true);
+            while (el.firstChild) el.removeChild(el.firstChild);
+            while (n.firstChild) el.appendChild(n.firstChild);
+            staggerRows(el); sortableTables(el); tooltips(el);
+        });
+
+        var mf = getForms(document), tf = getForms(doc);
+        if (mf.length === tf.length) mf.forEach(function (f, i) { syncForm(f, tf[i]); });
+
+        // Export links carry the current filters.
+        var mx = mainEl.querySelectorAll('a[href*="export"]'), tx = doc.querySelectorAll('.main-content a[href*="export"]');
+        if (mx.length === tx.length) [].forEach.call(mx, function (a, i) { a.setAttribute('href', tx[i].getAttribute('href')); });
+
+        document.dispatchEvent(new CustomEvent('ao:live', { detail: { regions: mine, modals: modals } }));
+        return true;
+    }
+    function liveGo(url, push, from) {
+        if (!mainEl || !window.fetch || !window.DOMParser || !liveParts(document).length) { location.href = url; return; }
+        var seq = ++liveSeq, path = new URL(url, location.href).pathname;
+        mainEl.classList.add('live-busy');
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'text/html' } })
+            .then(function (r) {
+                if (!r.ok || new URL(r.url).pathname !== path) throw new Error('live');
+                return r.text().then(function (html) { return { html: html, url: r.url }; });
+            })
+            .then(function (res) {
+                if (seq !== liveSeq) return;
+                if (!liveApply(new DOMParser().parseFromString(res.html, 'text/html'))) throw new Error('live');
+                mainEl.classList.remove('live-busy');
+                if (push && res.url !== location.href) history.pushState({ aoLive: 1 }, '', res.url);
+                // A page link low in a long list: bring the top of the new page back into view.
+                var card = from && from.closest && from.closest('.pagination') && from.closest('.content-card');
+                if (card && card.getBoundingClientRect().top < 0) card.scrollIntoView({ block: 'start' });
+            })
+            .catch(function () { if (seq === liveSeq) location.href = url; });
+    }
+    window.aoLive = { go: function (url) { liveGo(url, true); } };
+
+    if (mainEl) {
+        document.addEventListener('submit', function (e) {
+            var f = e.target, s = e.submitter;
+            // (Attributes are read by name: a field called "action" or "target" would shadow the form's own property.)
+            if (e.defaultPrevented || !f.matches || !mainEl.contains(f) || f.getAttribute('target')) return;
+            if ((f.getAttribute('method') || 'get').toLowerCase() !== 'get') return;
+            if (s && (s.hasAttribute('formaction') || s.hasAttribute('formtarget'))) return;   // export / print buttons
+            var url = new URL(f.getAttribute('action') || location.href, location.href);
+            if (url.pathname !== location.pathname || !liveParts(document).length) return;
+            e.preventDefault();
+            url.search = new URLSearchParams(new FormData(f)).toString();
+            liveGo(url.toString(), true, f);
+        });
+        document.addEventListener('click', function (e) {
+            if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            var a = e.target.closest && e.target.closest('a[href]');
+            if (!a || !mainEl.contains(a) || a.target || a.hasAttribute('download') || a.getAttribute('href').charAt(0) === '#') return;
+            var url = new URL(a.href, location.href);
+            if (url.origin !== location.origin || url.pathname !== location.pathname || url.searchParams.has('export')) return;
+            if (!liveParts(document).length) return;
+            e.preventDefault();
+            liveGo(url.toString(), true, a);
+        });
+        addEventListener('popstate', function () { if (liveParts(document).length) liveGo(location.href, false); });
+    }
 })();

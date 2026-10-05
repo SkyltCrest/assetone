@@ -196,4 +196,8 @@
     }
 
     document.querySelectorAll('[data-photo-picker]').forEach(setup);
+    // Pop-ups brought in by a live list refresh.
+    document.addEventListener('ao:live', function (e) {
+        e.detail.modals.forEach(function (m) { m.querySelectorAll('[data-photo-picker]').forEach(setup); });
+    });
 })();

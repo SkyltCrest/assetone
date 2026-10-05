@@ -17,7 +17,7 @@
        Glass cards (backdrop-filter) and .main-content create stacking
        contexts that would trap a modal underneath Bootstrap's backdrop,
        so move every page modal up to <body>. */
-    document.querySelectorAll('.main-content .modal').forEach(function (m) { document.body.appendChild(m); });
+    document.querySelectorAll('.main-content .modal').forEach(function (m) { m.setAttribute('data-page-modal', ''); document.body.appendChild(m); });
 
     /* ---------- Toast ---------- */
     function showToast(msg) {

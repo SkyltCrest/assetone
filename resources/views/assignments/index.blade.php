@@ -49,14 +49,14 @@
     @if($overdueCount > 0)
         <div class="overdue-banner show">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <span>{{ $overdueCount }} asset(s) overdue for return. Please take action.
+            <span data-live>{{ $overdueCount }} asset(s) overdue for return. Please take action.
                 @if($status !== 'overdue')<a href="{{ route('assignments.index', ['status' => 'overdue']) }}" class="alert-link ms-1">Show overdue</a>@endif
             </span>
         </div>
     @endif
 
     {{-- Status chips + export --}}
-    <div class="chips mb-3">
+    <div class="chips mb-3" data-live>
         @foreach($chips as $value => [$label, $count])
             <a href="{{ route('assignments.index', array_filter(['status' => $value ?: null, 'search' => $search])) }}"
                class="chip {{ $value === 'overdue' ? 'chip-overdue' : '' }} {{ (string) $status === (string) $value ? 'active' : '' }}">{{ $label }}<b>{{ $count }}</b></a>
@@ -66,7 +66,7 @@
         </div>
     </div>
 
-    <div class="table-responsive">
+    <div class="table-responsive" data-live>
         <table class="table table-hover align-middle mb-0" data-sortable data-server-sort data-sort="{{ $sort }}" data-dir="{{ $dir }}">
             <thead>
                 <tr>
@@ -173,7 +173,7 @@
         </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
         <small class="text-muted">Showing {{ $assignments->firstItem() ?? 0 }} to {{ $assignments->lastItem() ?? 0 }} of {{ $assignments->total() }} assignments</small>
         {{ $assignments->links() }}
     </div>
@@ -392,8 +392,9 @@
     }
     select.addEventListener('change', preview);
     document.querySelectorAll('[data-assign-new]').forEach(function (b) { b.addEventListener('click', function () { reassignId = null; }); });
-    document.querySelectorAll('[data-reassign]').forEach(function (b) {
-        b.addEventListener('click', function () { reassignId = b.dataset.reassign; bootstrap.Modal.getOrCreateInstance(modal).show(); });
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-reassign]'); if (!b) return;
+        reassignId = b.dataset.reassign; bootstrap.Modal.getOrCreateInstance(modal).show();
     });
     modal.addEventListener('show.bs.modal', function () {
         setOptions();
@@ -407,7 +408,7 @@
 </script>
 <script>
 // Loan duration: presets or a custom number of days, with the due date worked out live.
-document.querySelectorAll('[data-loan]').forEach(function (box) {
+function loanFields(root) { root.querySelectorAll('[data-loan]').forEach(function (box) {
     var start = box.querySelector('[data-loan-start]'),
         preset = box.querySelector('[data-loan-preset]'),
         customWrap = box.querySelector('[data-loan-custom-wrap]'),
@@ -432,6 +433,8 @@ document.querySelectorAll('[data-loan]').forEach(function (box) {
 
     [start, preset, custom].forEach(function (el) { el.addEventListener('input', update); el.addEventListener('change', update); });
     update();
-});
+}); }
+loanFields(document);
+document.addEventListener('ao:live', function (e) { e.detail.modals.forEach(loanFields); });
 </script>
 @endpush

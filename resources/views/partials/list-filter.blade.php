@@ -12,7 +12,7 @@
         </div>
     </div>
     <div class="col-12 col-md-4">
-        <select name="status" class="form-select" aria-label="Filter by status" onchange="this.form.submit()">
+        <select name="status" class="form-select" aria-label="Filter by status" onchange="this.form.requestSubmit()">
             <option value="">All Status</option>
             @foreach($options as $value => $label)
                 <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>

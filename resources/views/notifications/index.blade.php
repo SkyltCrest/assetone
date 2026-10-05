@@ -52,29 +52,29 @@
             @if($module)<input type="hidden" name="module" value="{{ $module }}">@endif
             @if($unreadOnly)<input type="hidden" name="unread" value="1">@endif
             <div class="search-box"><i class="bi bi-search"></i><input type="search" name="search" value="{{ $search }}" class="form-control" placeholder="Search by person, record or action..." aria-label="Search activity"></div>
-            <select name="period" class="form-select" aria-label="Period" onchange="this.form.submit()">
+            <select name="period" class="form-select" aria-label="Period" onchange="this.form.requestSubmit()">
                 <option value="">All time</option>
                 @foreach($periods as $value => $label)
                     <option value="{{ $value }}" @selected($period === (string) $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            <select name="action" class="form-select" aria-label="Action" onchange="this.form.submit()">
+            <select name="action" class="form-select" aria-label="Action" onchange="this.form.requestSubmit()">
                 <option value="">All actions</option>
                 @foreach($actions as $value => [$label])
                     <option value="{{ $value }}" @selected($action === $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            <a href="{{ $link(['unread' => $unreadOnly ? null : 1]) }}" class="chip {{ $unreadOnly ? 'active' : '' }}">Unread only</a>
+            <span class="live-inline" data-live><a href="{{ $link(['unread' => $unreadOnly ? null : 1]) }}" class="chip {{ $unreadOnly ? 'active' : '' }}">Unread only</a></span>
         </form>
 
-        <div class="chips mb-2">
+        <div class="chips mb-2" data-live>
             <a href="{{ $link(['module' => null]) }}" class="chip {{ $module === '' ? 'active' : '' }}">All<b>{{ $totalCount }}</b></a>
             @foreach($modules as $name => $count)
                 <a href="{{ $link(['module' => $name]) }}" class="chip {{ $module === $name ? 'active' : '' }}">{{ $name }}<b>{{ $count }}</b></a>
             @endforeach
         </div>
 
-        <div id="nItems">
+        <div id="nItems" data-live>
             @forelse($notifications as $n)
                 @php $day = $dayLabel($n->at); @endphp
                 @if($day !== $lastDay)
@@ -123,7 +123,7 @@
             @endforelse
         </div>
 
-        <div class="mt-3">{{ $notifications->links() }}</div>
+        <div class="mt-3" data-live>{{ $notifications->links() }}</div>
     </div>
 
     <div class="content-card nt-detail" id="ntDetail" aria-live="polite">
@@ -166,7 +166,7 @@
 (function () {
     var list = document.getElementById('nItems'), box = document.getElementById('ntDetail'),
         form = document.getElementById('ntActionForm'), method = document.getElementById('ntActionMethod');
-    var items = [].slice.call(list.querySelectorAll('.nt-item')), sel = -1;
+    var items = [], sel = -1;
     var el = function (tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
 
     function post(url, verb) { form.action = url; method.value = verb || 'POST'; form.submit(); }
@@ -227,9 +227,17 @@
         items[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
-    items.forEach(function (it, i) {
-        it.addEventListener('click', function (e) { if (e.target.closest('.nt-act')) return; show(i, true); });
-        it.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(i, true); } });
+    // The list is refreshed in place by the filters, so the items are looked up again each time.
+    function collect() { items = [].slice.call(list.querySelectorAll('.nt-item')); sel = -1; }
+    collect();
+    document.addEventListener('ao:live', collect);
+    list.addEventListener('click', function (e) {
+        var it = e.target.closest('.nt-item'); if (!it || e.target.closest('.nt-act')) return;
+        show(items.indexOf(it), true);
+    });
+    list.addEventListener('keydown', function (e) {
+        if ((e.key !== 'Enter' && e.key !== ' ') || !e.target.classList.contains('nt-item')) return;
+        e.preventDefault(); show(items.indexOf(e.target), true);
     });
 })();
 </script>

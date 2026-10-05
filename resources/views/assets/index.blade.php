@@ -22,7 +22,7 @@
 
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
-        <div><div class="text-muted small text-uppercase">Total Assets</div><h2>{{ $totalCount }}</h2><div class="stat-sub">{{ $assets->total() }} matching your filters</div></div>
+        <div><div class="text-muted small text-uppercase">Total Assets</div><h2>{{ $totalCount }}</h2><div class="stat-sub" data-live>{{ $assets->total() }} matching your filters</div></div>
         <div class="stat-icon icon-blue"><i class="bi bi-box-seam"></i></div>
     </div></div>
     <div class="col-6 col-xl-3"><div class="stat-card d-flex justify-content-between align-items-start">
@@ -51,7 +51,7 @@
         </div>
         <div class="col-md-6 col-xl-2">
             <label class="form-label" for="filterCategory">Category</label>
-            <select id="filterCategory" name="category" class="form-select" onchange="this.form.submit()">
+            <select id="filterCategory" name="category" class="form-select" onchange="this.form.requestSubmit()">
                 <option value="">All Categories</option>
                 @foreach($categories as $category)
                     <option value="{{ $category->id }}" @selected($selectedCategory == $category->id)>{{ $category->name }}</option>
@@ -60,7 +60,7 @@
         </div>
         <div class="col-md-4 col-xl-2">
             <label class="form-label" for="filterLocation">Location</label>
-            <select id="filterLocation" name="location" class="form-select" onchange="this.form.submit()">
+            <select id="filterLocation" name="location" class="form-select" onchange="this.form.requestSubmit()">
                 <option value="">All Locations</option>
                 @foreach($locations as $location)
                     <option value="{{ $location->id }}" @selected($selectedLocation == $location->id)>{{ $location->name }}</option>
@@ -69,7 +69,7 @@
         </div>
         <div class="col-md-4 col-xl-2">
             <label class="form-label" for="filterStatus">Status</label>
-            <select id="filterStatus" name="status" class="form-select" onchange="this.form.submit()">
+            <select id="filterStatus" name="status" class="form-select" onchange="this.form.requestSubmit()">
                 <option value="">All Statuses</option>
                 @foreach($statuses as $status)
                     <option value="{{ $status->id }}" @selected($selectedStatus == $status->id)>{{ $status->name }}</option>
@@ -78,7 +78,7 @@
         </div>
         <div class="col-md-4 col-xl-2">
             <label class="form-label" for="filterDepartment">Department</label>
-            <select id="filterDepartment" name="department" class="form-select" onchange="this.form.submit()">
+            <select id="filterDepartment" name="department" class="form-select" onchange="this.form.requestSubmit()">
                 <option value="">All Departments</option>
                 @foreach($departments as $department)
                     <option value="{{ $department }}" @selected($selectedDepartment === $department)>{{ $department }}</option>
@@ -87,13 +87,13 @@
         </div>
         <div class="col-6 col-md-3 col-xl-2">
             <label class="form-label" for="purchaseFrom">Purchase From</label>
-            <input type="date" id="purchaseFrom" name="purchase_from" value="{{ $purchaseFrom }}" class="form-control" onchange="this.form.submit()">
+            <input type="date" id="purchaseFrom" name="purchase_from" value="{{ $purchaseFrom }}" class="form-control" onchange="this.form.requestSubmit()">
         </div>
         <div class="col-6 col-md-3 col-xl-2">
             <label class="form-label" for="purchaseTo">Purchase To</label>
-            <input type="date" id="purchaseTo" name="purchase_to" value="{{ $purchaseTo }}" class="form-control" onchange="this.form.submit()">
+            <input type="date" id="purchaseTo" name="purchase_to" value="{{ $purchaseTo }}" class="form-control" onchange="this.form.requestSubmit()">
         </div>
-        <div class="col-md-6 col-xl-8 d-flex gap-2 justify-content-md-end">
+        <div class="col-md-6 col-xl-8 d-flex gap-2 justify-content-md-end" data-live>
             <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Search</button>
             @if($hasFilters)
                 <a href="{{ route('assets.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-clockwise me-1"></i>Reset</a>
@@ -105,12 +105,12 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h5 class="fw-bold mb-0">Asset Records</h5>
-        <small class="text-muted">{{ $assets->total() }} asset{{ $assets->total() === 1 ? '' : 's' }} found</small>
+        <small class="text-muted" data-live>{{ $assets->total() }} asset{{ $assets->total() === 1 ? '' : 's' }} found</small>
     </div>
 
     {{-- Status chips, sort, export, table / card switch --}}
     @php $query = request()->except(['status', 'page']); @endphp
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3" data-live>
         <div class="chips mb-0">
             <a href="{{ route('assets.index', $query) }}" class="chip {{ $selectedStatus ? '' : 'active' }}">All<b>{{ $totalCount }}</b></a>
             @foreach($statuses as $status)
@@ -118,7 +118,7 @@
             @endforeach
         </div>
         <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
-            <select class="form-select" style="width:auto;min-height:40px" aria-label="Sort assets" onchange="var f=document.getElementById('ovFilters');f.sort.value=this.value;f.submit()">
+            <select class="form-select" style="width:auto;min-height:40px" aria-label="Sort assets" onchange="var f=document.getElementById('ovFilters');f.sort.value=this.value;f.requestSubmit()">
                 @foreach($sorts as $value => $label)
                     <option value="{{ $value }}" @selected($sort === $value)>{{ $label }}</option>
                 @endforeach
@@ -131,6 +131,7 @@
         </div>
     </div>
 
+    <div data-live>
     @if($assets->isEmpty())
         <div class="empty-state">
             <i class="bi bi-search"></i>
@@ -236,8 +237,9 @@
             @endforeach
         </div>
     @endif
+    </div>
 
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2" data-live>
         <small class="text-muted">Showing {{ $assets->firstItem() ?? 0 }} to {{ $assets->lastItem() ?? 0 }} of {{ $assets->total() }} assets</small>
         {{ $assets->links() }}
     </div>
@@ -318,28 +320,35 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-// Table / card view switch, remembered per browser.
+// Table / card view switch, remembered per browser. The filters refresh the list in place,
+// so the views and buttons are looked up each time rather than once.
 (function () {
-    var views = document.querySelectorAll('[data-view]'), buttons = document.querySelectorAll('[data-view-btn]');
-    if (!views.length) return;
     function show(name) {
-        views.forEach(function (v) { v.classList.toggle('d-none', v.dataset.view !== name); });
-        buttons.forEach(function (b) { b.classList.toggle('active', b.dataset.viewBtn === name); });
-        try { localStorage.setItem('assetone_ov_view', name); } catch (e) {}
+        document.querySelectorAll('[data-view]').forEach(function (v) { v.classList.toggle('d-none', v.dataset.view !== name); });
+        document.querySelectorAll('[data-view-btn]').forEach(function (b) { b.classList.toggle('active', b.dataset.viewBtn === name); });
     }
-    buttons.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.viewBtn); }); });
-    var saved = 'table';
-    try { saved = localStorage.getItem('assetone_ov_view') || 'table'; } catch (e) {}
-    show(saved === 'cards' ? 'cards' : 'table');
+    function restore() {
+        var saved = 'table';
+        try { saved = localStorage.getItem('assetone_ov_view') || 'table'; } catch (e) {}
+        show(saved === 'cards' ? 'cards' : 'table');
+    }
+    restore();
+    document.addEventListener('ao:live', restore);
 
     // A card opens the asset's details page.
-    document.querySelectorAll('.ov-card[data-href]').forEach(function (card) {
-        function go(e) {
-            if (e.target.closest('.ov-actions') || e.target.closest('[data-lightbox]')) return;
-            location.href = card.dataset.href;
-        }
-        card.addEventListener('click', go);
-        card.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(e); } });
+    function open(card, e) {
+        if (e.target.closest('.ov-actions') || e.target.closest('[data-lightbox]')) return;
+        location.href = card.dataset.href;
+    }
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-view-btn]');
+        if (b) { show(b.dataset.viewBtn); try { localStorage.setItem('assetone_ov_view', b.dataset.viewBtn); } catch (err) {} return; }
+        var card = e.target.closest('.ov-card[data-href]');
+        if (card) open(card, e);
+    });
+    document.addEventListener('keydown', function (e) {
+        if ((e.key !== 'Enter' && e.key !== ' ') || !e.target.matches || !e.target.matches('.ov-card[data-href]')) return;
+        e.preventDefault(); open(e.target, e);
     });
 
     // Purchase range: warn instead of searching when the dates are the wrong way round.
@@ -350,7 +359,7 @@
         el.addEventListener('change', function () {
             var bad = from.value && to.value && from.value > to.value;
             err.classList.toggle('d-none', !bad);
-            if (!bad) el.form.submit();
+            if (!bad) el.form.requestSubmit();
         });
     });
 })();

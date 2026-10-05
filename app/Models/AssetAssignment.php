@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 class AssetAssignment extends Model
 {
@@ -16,10 +17,12 @@ class AssetAssignment extends Model
     public const STATUS_UNASSIGNED = 'unassigned';
 
     protected $fillable = [
+        'application_no',
         'asset_id',
         'custodian_id',
         'assigned_by',
         'department',
+        'place_of_use',
         'assigned_date',
         'loan_days',
         'due_date',
@@ -54,6 +57,32 @@ class AssetAssignment extends Model
     public function assignedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by');
+    }
+
+    /**
+     * The KEW.PA-9 application number for a loan, e.g. PA9-2026-0007.
+     *
+     * Everything one person borrows on the same day goes on a single form, so
+     * it shares that day's number; otherwise the next number of the year is used.
+     */
+    public static function applicationNoFor(int|string $custodianId, string $assignedDate, ?int $exceptId = null): string
+    {
+        $date = Carbon::parse($assignedDate);
+
+        $shared = static::where('custodian_id', $custodianId)
+            ->whereDate('assigned_date', $date)
+            ->whereNotNull('application_no')
+            ->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))
+            ->value('application_no');
+
+        if ($shared) {
+            return $shared;
+        }
+
+        $prefix = 'PA9-'.$date->year.'-';
+        $last = static::where('application_no', 'like', $prefix.'%')->max('application_no');
+
+        return $prefix.str_pad((string) ((int) substr((string) $last, strlen($prefix)) + 1), 4, '0', STR_PAD_LEFT);
     }
 
     public function isPending(): bool

@@ -19,6 +19,12 @@
             <div class="detail-row"><span class="label">Assigned By</span><span class="value">{{ $assignment->assignedBy->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Assigned To</span><span class="value">{{ $assignment->custodian->name ?? '—' }}</span></div>
             <div class="detail-row"><span class="label">Department</span><span class="value">{{ $assignment->department }}</span></div>
+            @if($assignment->place_of_use)
+                <div class="detail-row"><span class="label">Place of Use</span><span class="value">{{ $assignment->place_of_use }}</span></div>
+            @endif
+            @if($assignment->application_no)
+                <div class="detail-row"><span class="label">Application No.</span><span class="value">{{ $assignment->application_no }}</span></div>
+            @endif
             <div class="detail-row"><span class="label">Assignment Date</span><span class="value">{{ $assignment->assigned_date->format('d F Y') }}</span></div>
             @if($assignment->due_date)
                 <div class="detail-row"><span class="label">Due Date</span><span class="value {{ $assignment->isOverdue() ? 'text-danger' : '' }}">{{ $assignment->due_date->format('d F Y') }}@if($assignment->loan_days) <span class="text-muted fw-normal">({{ $assignment->loan_days }} days)</span>@endif</span></div>

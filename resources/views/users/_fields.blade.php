@@ -60,6 +60,11 @@
         </select>
     </div>
     <div class="col-md-6">
+        <label class="form-label">Position (Jawatan)</label>
+        <input type="text" name="position" value="{{ $user->position ?? '' }}" class="form-control" placeholder="e.g. Pembantu Tadbir N19" maxlength="255">
+        <div class="form-text">Printed on the KEW.PA forms.</div>
+    </div>
+    <div class="col-md-6">
         <label class="form-label">Status</label>
         <select name="status" class="form-select">
             <option value="active" @selected(($user->status ?? 'active') === 'active')>Active</option>

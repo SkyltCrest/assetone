@@ -8,6 +8,7 @@
 
 <x-banner :title="$report->asset->name ?? 'Asset'">
     <x-slot:text>Report {{ $report->report_code }} &middot; Asset ID: {{ $report->asset->asset_code ?? '—' }}</x-slot:text>
+    <a href="{{ route('forms.print', ['form' => 'pa10', 'only' => $report->id]) }}" target="_blank" class="btn btn-secondary"><i class="bi bi-printer me-1"></i> KEW.PA-10</a>
     <a href="{{ route('issue-verifications.index') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Back</a>
 </x-banner>
 

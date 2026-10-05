@@ -142,6 +142,7 @@ class DatabaseSeeder extends Seeder
                 'asset_id' => $assets[$row['asset']]->id,
                 'assigned_date' => $row['date'],
             ], [
+                'application_no' => AssetAssignment::applicationNoFor($row['custodian']->id, $row['date']),
                 'custodian_id' => $row['custodian']->id,
                 'assigned_by' => $ahmad->id,
                 'department' => $row['department'],

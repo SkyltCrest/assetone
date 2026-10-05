@@ -175,7 +175,7 @@
                 <small class="text-muted">@yield('subheading')</small>
             </div>
         </div>
-        <div class="d-flex align-items-center gap-2 gap-sm-3">
+        <div class="nav-right d-flex align-items-center gap-2 gap-sm-3">
             <span class="live-clock d-none d-md-inline" id="clock"></span>
 
             <div class="nav-tool">

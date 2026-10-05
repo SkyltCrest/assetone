@@ -157,6 +157,7 @@
                     <div class="pf-grid">
                         <div><small>Role</small><b>{{ $roles[$user->role] ?? ucwords(str_replace('_', ' ', $user->role)) }}</b></div>
                         <div><small>Department</small><b>{{ $user->department ?: '-' }}</b></div>
+                        <div><small>Position</small><b>{{ $user->position ?: '-' }}</b></div>
                         <div><small>Email</small><a href="mailto:{{ $user->email }}">{{ $user->email }}</a></div>
                         <div><small>Assigned assets</small><b>{{ $user->assets->count() }}</b></div>
                     </div>

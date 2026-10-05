@@ -106,10 +106,12 @@ class AssetAssignmentController extends Controller
 
         $asset = Asset::findOrFail($data['asset_id']);
         $assignment = AssetAssignment::create([
+            'application_no' => AssetAssignment::applicationNoFor($data['custodian_id'], $data['assigned_date']),
             'asset_id' => $asset->id,
             'custodian_id' => $data['custodian_id'],
             'assigned_by' => $request->user()->id,
             'department' => $asset->department ?? 'Unassigned',
+            'place_of_use' => $data['place_of_use'] ?? null,
             'assigned_date' => $data['assigned_date'],
             'loan_days' => $data['loan_days'],
             'due_date' => $this->dueDate($data['assigned_date'], $data['loan_days']),
@@ -135,10 +137,18 @@ class AssetAssignmentController extends Controller
             ? ($assignment->returned_date ?? today())
             : null;
 
+        // A loan moved to another person or day joins (or starts) that day's application.
+        $sameLoan = ! $custodianChanged && $assignment->application_no
+            && $assignment->assigned_date->isSameDay($data['assigned_date']);
+
         $assignment->update([
+            'application_no' => $sameLoan
+                ? $assignment->application_no
+                : AssetAssignment::applicationNoFor($data['custodian_id'], $data['assigned_date'], $assignment->id),
             'asset_id' => $asset->id,
             'custodian_id' => $data['custodian_id'],
             'department' => $asset->department ?? 'Unassigned',
+            'place_of_use' => $data['place_of_use'] ?? null,
             'assigned_date' => $data['assigned_date'],
             'loan_days' => $loanDays,
             'due_date' => $this->dueDate($data['assigned_date'], $loanDays),
@@ -215,6 +225,7 @@ class AssetAssignmentController extends Controller
             'assigned_date' => ['required', 'date'],
             'loan_days' => [$requireLoan ? 'required' : 'nullable', 'integer', 'min:1', $requireLoan ? 'max:365' : 'max:3650'],
             'status' => ['sometimes', 'required', 'in:pending_verification,assigned,rejected,unassigned'],
+            'place_of_use' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ], [
             'loan_days.required' => 'Choose how long the asset is on loan.',

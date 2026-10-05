@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\AssetAssignmentController;
 use App\Http\Controllers\AssignmentVerificationController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OfficialFormController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\AssetCategoryController;
 use App\Http\Controllers\AssetController;
@@ -120,6 +121,10 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('reports', [AssetReportController::class, 'index'])->name('reports.index');
     Route::get('reports/print', [AssetReportController::class, 'print'])->name('reports.print');
     Route::get('reports/export', [AssetReportController::class, 'export'])->name('reports.export');
+
+    // KEW.PA forms filled from loans and reported issues (any logged-in user; staff see their own records)
+    Route::get('forms', [OfficialFormController::class, 'index'])->name('forms.index');
+    Route::get('forms/print', [OfficialFormController::class, 'print'])->name('forms.print');
 
     // Account settings (any logged-in user)
     Route::get('settings', [AccountSettingsController::class, 'index'])->name('settings.index');

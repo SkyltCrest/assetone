@@ -138,6 +138,7 @@
             <ul class="nav flex-column">
                 <li><a href="{{ route('assets.index') }}" class="nav-link {{ request()->routeIs('assets.index', 'assets.show') ? 'active' : '' }}"><i class="bi bi-search"></i>Asset Overview</a></li>
                 <li><a href="{{ route('reports.index') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-bar-graph"></i>Asset Report</a></li>
+                <li><a href="{{ route('forms.index') }}" class="nav-link {{ request()->routeIs('forms.*') ? 'active' : '' }}"><i class="bi bi-file-earmark-ruled"></i>KEW.PA Forms</a></li>
             </ul>
         </li>
 

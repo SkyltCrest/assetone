@@ -192,6 +192,7 @@ class UserController extends Controller
             'password' => [$user ? 'nullable' : 'required', Password::min(8)->mixedCase()->numbers()->symbols()],
             'role' => ['required', Rule::in($roles)],
             'department' => ['required', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
             'status' => ['required', 'in:active,inactive'],
             'photo' => ['nullable', ...PhotoService::RULES],
         ]);

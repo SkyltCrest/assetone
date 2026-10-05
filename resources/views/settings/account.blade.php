@@ -46,10 +46,16 @@
                             <input type="text" value="{{ $user->username }}" class="form-control" disabled>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-medium">Department</label>
-                        <input type="text" value="{{ $user->department ?: '—' }}" class="form-control" disabled>
-                        <div class="form-text">Your role and department are set by an administrator in User Management.</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Department</label>
+                            <input type="text" value="{{ $user->department ?: '—' }}" class="form-control" disabled>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Position</label>
+                            <input type="text" value="{{ $user->position ?: '—' }}" class="form-control" disabled>
+                        </div>
+                        <div class="col-12 form-text mt-1">Your role, department and position are set by an administrator in User Management.</div>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary px-4"><i class="bi bi-save me-2"></i>Save Changes</button>

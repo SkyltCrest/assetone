@@ -81,6 +81,66 @@ class AppFlowsTest extends TestCase
         $this->get("/assets/{$asset->id}/edit")->assertOk();
     }
 
+    public function test_kew_pa_forms_print_filled_in_and_staff_only_see_their_own(): void
+    {
+        $this->actingAs($this->admin());
+
+        $loan = AssetAssignment::with('asset', 'custodian')->where('status', AssetAssignment::STATUS_ASSIGNED)->firstOrFail();
+        $issue = \App\Models\IssueReport::with('asset', 'reporter')->firstOrFail();
+
+        $this->get('/forms')->assertOk()->assertSee($loan->custodian->name);
+        $this->get('/forms?form=pa10')->assertOk()->assertSee($issue->report_code);
+
+        $loan->update(['place_of_use' => 'Bilik Mesyuarat Utama']);
+        $loan->custodian->update(['position' => 'Pembantu Tadbir N19']);
+
+        $this->get("/forms/print?form=pa9&only={$loan->id}")->assertOk()
+            ->assertSee('KEW.PA-9')
+            ->assertSee($loan->application_no)
+            ->assertSee('Bilik Mesyuarat Utama')
+            ->assertSee('Pembantu Tadbir N19')
+            ->assertSee($loan->custodian->name)
+            ->assertSee($loan->asset->asset_code)
+            ->assertSee($loan->assigned_date->format('d/m/Y'));
+
+        $this->get('/forms/print?form=pa10')->assertOk()
+            ->assertSee('BORANG ADUAN KEROSAKAN ASET ALIH')
+            ->assertSee($issue->asset->asset_code)
+            ->assertSee($issue->description);
+
+        // Someone else's records never reach a department staff member's forms.
+        $staff = User::where('role', 'department_staff')->whereKeyNot($loan->custodian_id)->whereKeyNot($issue->reported_by)->firstOrFail();
+        $this->actingAs($staff);
+
+        $this->get("/forms/print?form=pa9&only={$loan->id}")->assertOk()->assertDontSee($loan->asset->asset_code);
+        $this->get("/forms/print?form=pa10&only={$issue->id}")->assertOk()->assertDontSee($issue->asset->asset_code);
+    }
+
+    public function test_loans_by_one_person_on_one_day_share_an_application_number(): void
+    {
+        $this->actingAs($this->admin());
+
+        $borrower = User::where('role', 'department_staff')->firstOrFail();
+        $busy = AssetAssignment::whereIn('status', [AssetAssignment::STATUS_ASSIGNED, AssetAssignment::STATUS_PENDING])->pluck('asset_id');
+        $free = Asset::whereNotIn('id', $busy)->take(2)->get();
+        $this->assertCount(2, $free);
+
+        foreach ($free as $asset) {
+            $this->post('/assignments', [
+                'asset_id' => $asset->id, 'custodian_id' => $borrower->id, 'assigned_date' => '2026-10-05',
+                'loan_days' => 7, 'place_of_use' => 'Dewan Serbaguna',
+            ])->assertSessionHasNoErrors();
+        }
+
+        $numbers = AssetAssignment::whereIn('asset_id', $free->pluck('id'))->whereDate('assigned_date', '2026-10-05')->pluck('application_no');
+        $this->assertCount(2, $numbers);
+        $this->assertCount(1, $numbers->unique());
+        $this->assertMatchesRegularExpression('/^PA9-2026-\\d{4}$/', $numbers->first());
+
+        // A loan on another day starts the next application.
+        $this->assertNotSame($numbers->first(), AssetAssignment::applicationNoFor($borrower->id, '2026-10-06'));
+    }
+
     public function test_exports_download_csv(): void
     {
         $this->actingAs($this->admin());

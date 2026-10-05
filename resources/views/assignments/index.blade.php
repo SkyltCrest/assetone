@@ -224,6 +224,11 @@
                                 <strong>Rejection reason:</strong> {{ $assignment->rejection_reason }}
                             </div>
                         @endif
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Place of Use</label>
+                            <input type="text" name="place_of_use" value="{{ $assignment->place_of_use }}" class="form-control" maxlength="255" placeholder="Where the asset will be used">
+                            <div class="form-text">Application no. {{ $assignment->application_no ?: '-' }} &middot; printed on the KEW.PA-9 form.</div>
+                        </div>
                         <div class="mb-1">
                             <label class="form-label fw-medium">Note / Reason</label>
                             <textarea name="notes" class="form-control" rows="3">{{ $assignment->notes }}</textarea>
@@ -342,6 +347,10 @@
                         <div class="form-text">Includes administrators, asset officers and department staff.</div>
                     </div>
                     @include('assignments._loan-fields', ['assignment' => null, 'required' => true])
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Place of Use</label>
+                        <input type="text" name="place_of_use" class="form-control" maxlength="255" placeholder="Where the asset will be used">
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-medium">Note / Reason</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="Optional note..."></textarea>

@@ -1129,7 +1129,9 @@ html[data-theme=light] .caps-hint{color:#b45309}
 .banner-chip kbd,.form-text kbd{background:rgba(0,0,0,.28);border-radius:6px;padding:.1rem .4rem;font-size:.72rem}
 .stat-sub{font-size:.74rem;color:var(--mu);margin-top:.35rem;font-weight:600}
 a.stat-card{color:inherit}
-.table tbody tr.row-stagger{animation:rowIn .45s backwards;animation-delay:calc(var(--i,0)*40ms)}
+.table tbody tr.row-stagger{animation:rowIn .45s both;animation-delay:calc(var(--i,0)*40ms)}
+/* The finished animation keeps each row as its own layer, which is what anchors the fixed row menu. Lift the row whose menu is open above the rows after it. */
+.table tbody tr:has(.dropdown-menu.show){position:relative;z-index:3}
 .chips .chip-tools{margin-left:auto;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
 [data-lightbox]{cursor:zoom-in}
 .lo-go{margin-top:.25rem}

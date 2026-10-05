@@ -143,11 +143,23 @@
     });
 
     /* ---------- Top-bar panels ---------- */
+    // Panels hang from the right edge of their button. When the top bar wraps on a narrow
+    // window the button sits near the left, so nudge the panel right to keep it on screen.
+    function placePanel(p) {
+        p.style.right = '';
+        var tool = p.closest('.nav-tool'), main = document.querySelector('.main-content');
+        if (!tool) return;
+        var minLeft = (main ? Math.max(0, main.getBoundingClientRect().left) : 0) + 12;
+        var left = tool.getBoundingClientRect().right - p.offsetWidth;
+        if (left < minLeft) p.style.right = (left - minLeft) + 'px';
+    }
     function togglePanel(id) {
         document.querySelectorAll('.nav-panel').forEach(function (p) {
-            if (p.id === id) p.classList.toggle('show'); else p.classList.remove('show');
+            if (p.id === id) { p.classList.toggle('show'); if (p.classList.contains('show')) placePanel(p); }
+            else p.classList.remove('show');
         });
     }
+    window.addEventListener('resize', function () { document.querySelectorAll('.nav-panel.show').forEach(placePanel); });
     document.querySelectorAll('[data-panel]').forEach(function (btn) {
         btn.addEventListener('click', function (e) { e.preventDefault(); togglePanel(btn.getAttribute('data-panel')); });
     });

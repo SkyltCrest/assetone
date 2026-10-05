@@ -141,10 +141,6 @@
         </div>
 
         <div class="card content-card p-4">
-            <div class="info-box location-info">
-                <i class="bi bi-info-circle-fill"></i>
-                <div><strong>Location and Custodian are separate.</strong><span>Register the physical location here. The custodian (PIC) is assigned separately during Asset Registration or Asset Assignment.</span></div>
-            </div>
             <form method="GET" action="{{ route('asset-management.index') }}" class="filter-bar">
                 <input type="hidden" name="tab" value="location">
                 <div class="search-box flex-grow-1"><i class="bi bi-search"></i><input type="search" name="location_search" value="{{ $locationSearch }}" class="form-control" placeholder="Search location name or code..."></div>

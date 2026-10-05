@@ -1124,7 +1124,7 @@ html[data-theme=light] .caps-hint{color:#b45309}
 #moduleTabs .tab-glide{top:0;bottom:0}
 .filter-bar .search-box input{width:100%}
 .btn{position:relative;overflow:hidden}
-.btn-close,.btn-link{overflow:visible}
+.btn-close,.btn-link,.nav-tool>.btn{overflow:visible}
 .page-banner .banner-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
 .banner-chip kbd,.form-text kbd{background:rgba(0,0,0,.28);border-radius:6px;padding:.1rem .4rem;font-size:.72rem}
 .stat-sub{font-size:.74rem;color:var(--mu);margin-top:.35rem;font-weight:600}

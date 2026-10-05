@@ -168,7 +168,7 @@
 <div class="main-content">
 
     <div class="top-navbar g d-flex justify-content-between align-items-center animate-in delay-1">
-        <div class="d-flex align-items-center gap-3">
+        <div class="nav-heading d-flex align-items-center gap-3">
             <button type="button" class="btn btn-light border d-lg-none" id="sidebarToggle" title="Toggle navigation" aria-label="Toggle navigation"><i class="bi bi-list fs-5"></i></button>
             <div>
                 <h5 class="fw-bold mb-0">@yield('heading')</h5>
@@ -176,6 +176,7 @@
             </div>
         </div>
         <div class="nav-right d-flex align-items-center gap-2 gap-sm-3">
+            <div class="nav-tools-group d-flex align-items-center gap-2 gap-sm-3">
             <span class="live-clock d-none d-md-inline" id="clock"></span>
 
             <div class="nav-tool">
@@ -237,6 +238,7 @@
             </div>
 
             @yield('nav-tools')
+            </div>
             <a href="{{ route('settings.index') }}" class="profile-chip d-flex align-items-center gap-2" title="View Profile">
                 <div class="text-end d-none d-sm-block">
                     <div class="fw-semibold lh-1 mb-1">{{ $user->name ?? 'Guest' }}</div>

@@ -128,6 +128,15 @@ li.sidebar-section:not(:has(button)){padding:.9rem 1rem .35rem}
 .top-navbar h5{font-weight:800}
 /* Fills the rest of the row, so the tools stay right-aligned when they wrap under the heading */
 .top-navbar .nav-right{flex:1 1 auto;justify-content:flex-end}
+/* Too tight for one row: profile stays beside the heading, clock and tools drop to a row of their own.
+   Narrower still, the profile rejoins the tools. Sized on the bar itself, since the sidebar changes its width. */
+.top-navbar{container:topnav/inline-size}
+@container topnav (min-width:520px) and (max-width:999.98px){
+    .nav-right{display:contents!important}
+    .nav-heading{flex:1 1 0;min-width:0}
+    .profile-chip{order:2;margin-left:auto}
+    .nav-tools-group{order:3;flex:0 0 100%;justify-content:flex-end}
+}
 .live-clock{font-size:.78rem;color:#90caf9;font-weight:600}
 html[data-theme=light] .live-clock{color:#1565c0}
 .profile-icon{width:44px;height:44px;background:linear-gradient(135deg,#1976d2,#0d47a1);color:#fff!important;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem;font-weight:800;border:1px solid rgba(255,255,255,.35);box-shadow:0 4px 16px rgba(33,150,243,.45);transition:transform .25s;cursor:pointer}

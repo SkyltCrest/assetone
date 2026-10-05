@@ -24,7 +24,8 @@
     /* ---------- Button ripple ---------- */
     if (!reduced) document.addEventListener('click', function (e) {
         var b = e.target.closest && e.target.closest('.btn:not(.btn-close):not(.btn-link)');
-        if (!b) return;
+        // Top-bar tool buttons are skipped: their badges overhang, so they cannot clip a ripple.
+        if (!b || b.parentElement.classList.contains('nav-tool')) return;
         var r = b.getBoundingClientRect(), z = Math.max(r.width, r.height), sp = document.createElement('span');
         sp.className = 'ripple';
         sp.style.cssText = 'width:' + z + 'px;height:' + z + 'px;left:' + (e.clientX - r.left - z / 2) + 'px;top:' + (e.clientY - r.top - z / 2) + 'px';

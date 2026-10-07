@@ -2,7 +2,9 @@
 
 namespace App\Observers;
 
+use App\Models\Asset;
 use App\Models\AssetAssignment;
+use App\Models\AssetMaintenance;
 use App\Models\IssueReport;
 use App\Models\User;
 use App\Notifications\AdminActivityNotification;

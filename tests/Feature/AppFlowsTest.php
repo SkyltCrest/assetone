@@ -257,4 +257,21 @@ class AppFlowsTest extends TestCase
             $this->assertNotNull($holder->fresh());
         }
     }
+
+    public function test_activity_notifications_are_filed_under_the_module_of_the_record(): void
+    {
+        $admin = $this->admin();
+
+        Asset::firstOrFail()->update(['name' => 'Renamed Asset']);
+        AssetMaintenance::firstOrFail()->update(['status' => 'cancelled']);
+        AssetCategory::firstOrFail()->update(['name' => 'Renamed Category']);
+
+        $modules = $admin->notifications()->get()
+            ->filter(fn ($n) => ($n->data['type'] ?? null) === 'admin_activity')
+            ->mapWithKeys(fn ($n) => [$n->data['title'] => $n->data['module']]);
+
+        $this->assertSame('Registration', $modules->first(fn ($m, $title) => str_contains($title, 'Renamed Asset')));
+        $this->assertSame('Maintenance', $modules->first(fn ($m, $title) => str_contains($title, 'Maintenance record')));
+        $this->assertSame('Management', $modules->first(fn ($m, $title) => str_contains($title, 'Renamed Category')));
+    }
 }

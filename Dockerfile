@@ -19,6 +19,13 @@ COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
+# Compile every Blade view into the image. Left to compile on first use, two
+# requests arriving together on a fresh container (every deploy, and every
+# wake-up from the free plan's idle spin-down) could both compile the same
+# view; Laravel writes the compiled file in place, so one request could load
+# it half-written and fail with a 500.
+RUN php artisan view:cache
+
 EXPOSE 8080
 
 # FrankenPHP serves ./public over a real, multi-threaded HTTP server, so

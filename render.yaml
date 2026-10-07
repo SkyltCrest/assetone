@@ -16,6 +16,11 @@ services:
         sync: false
       - key: APP_URL
         sync: false
+      # Log to stderr so exceptions show up in Render's Logs tab. The default
+      # file log lives inside the container, where nobody can read it and it
+      # is wiped on every restart.
+      - key: LOG_CHANNEL
+        value: stderr
       - key: SESSION_DRIVER
         value: database
       # Render serves the app over HTTPS only; scope the session cookie to
@@ -35,8 +40,12 @@ services:
         value: database
       - key: DB_CONNECTION
         value: mysql
+      # Persistent connections are deliberately off: FrankenPHP keeps one open
+      # per server thread for the life of the container, and the database
+      # host caps the number of connections, so they could run out and fail
+      # requests with a 500.
       - key: DB_PERSISTENT
-        value: true
+        value: false
       - key: DB_HOST
         sync: false
       - key: DB_PORT

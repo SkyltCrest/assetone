@@ -124,7 +124,8 @@ class AssetController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request, new Asset());
-        $data['asset_status_id'] ??= AssetStatus::where('name', Asset::STATUS_ACTIVE)->value('id');
+        // A new asset always starts as Active; the status is only chosen when editing.
+        $data['asset_status_id'] = AssetStatus::where('name', Asset::STATUS_ACTIVE)->value('id');
 
         $asset = DB::transaction(function () use ($data, $request) {
             $data['asset_code'] = $this->nextCode(AssetType::findOrFail($data['asset_type_id']), $data['purchase_date']);
@@ -261,7 +262,7 @@ class AssetController extends Controller
             'asset_location_id' => [$asset->exists ? 'nullable' : 'required', 'exists:asset_locations,id'],
             'custodian_id' => [$asset->exists ? 'nullable' : 'required', 'exists:users,id'],
             'assigned_date' => ['nullable', 'date', 'after_or_equal:purchase_date'],
-            'asset_status_id' => ['required', 'exists:asset_statuses,id'],
+            'asset_status_id' => $asset->exists ? ['required', 'exists:asset_statuses,id'] : ['exclude'],
             // A picture is compulsory, but an asset that already has one may keep it.
             'photo' => [$asset->exists && $asset->photo ? 'nullable' : 'required', ...PhotoService::ASSET_RULES],
         ], [

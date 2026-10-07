@@ -12,6 +12,7 @@ use App\Models\IssueReport;
 use App\Models\User;
 use App\Observers\ActivityObserver;
 use App\Observers\AssetMaintenanceObserver;
+use App\Support\RetryingMySqlConnector;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -39,7 +40,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Ride out the moments when the database host refuses new connections.
+        // Production only: locally a refused connection means MySQL is not running.
+        if ($this->app->environment('production')) {
+            $this->app->bind('db.connector.mysql', RetryingMySqlConnector::class);
+        }
     }
 
     /**

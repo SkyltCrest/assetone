@@ -28,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             \App\Http\Middleware\EnsureAccountIsActive::class,
+            \App\Http\Middleware\PreventCachingOfPrivatePages::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

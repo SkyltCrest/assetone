@@ -62,6 +62,17 @@ class AppFlowsTest extends TestCase
         $this->get('/forgot-password')->assertOk();
     }
 
+    public function test_pages_are_not_kept_by_the_browser_so_back_after_logout_reaches_the_login_page(): void
+    {
+        $this->actingAs($this->admin());
+
+        $cacheControl = $this->get('/home')->assertOk()->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+
+        $this->post('/logout')->assertRedirect();
+        $this->get('/home')->assertRedirect('/login');
+    }
+
     public function test_every_page_opens_for_an_administrator(): void
     {
         $this->actingAs($this->admin());

@@ -19,6 +19,12 @@
        so move every page modal up to <body>. */
     document.querySelectorAll('.main-content .modal').forEach(function (m) { m.setAttribute('data-page-modal', ''); document.body.appendChild(m); });
 
+    /* ---------- Back button after logout ----------
+       A page restored from the browser's back/forward cache never reaches
+       the server, so it would reappear after logout. Reload it instead:
+       the server then sends a logged-out visitor to the login page. */
+    addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
+
     /* ---------- Toast ---------- */
     function showToast(msg) {
         var el = $('liveToast');

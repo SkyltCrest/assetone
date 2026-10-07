@@ -195,6 +195,17 @@ class AppFlowsTest extends TestCase
         $this->assertNotSame('', $asset->location_detail);
     }
 
+    public function test_a_newly_registered_asset_is_always_active(): void
+    {
+        $this->actingAs($this->admin());
+        $other = AssetStatus::where('name', '!=', Asset::STATUS_ACTIVE)->firstOrFail();
+
+        $this->post('/assets', $this->assetData(['asset_status_id' => $other->id]))->assertSessionHasNoErrors();
+
+        $asset = Asset::where('serial_number', 'SN-TEST-0001')->firstOrFail();
+        $this->assertSame(Asset::STATUS_ACTIVE, $asset->assetStatus->name);
+    }
+
     public function test_an_older_asset_can_be_updated_without_a_location_or_person_in_charge(): void
     {
         $this->actingAs($this->admin());

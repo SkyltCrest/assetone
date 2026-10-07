@@ -58,12 +58,20 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="assetStatus">Asset Status <span class="required">*</span></label>
-                    <select id="assetStatus" name="asset_status_id" class="form-select @error('asset_status_id') is-invalid @enderror" required>
-                        @foreach($statuses as $status)
-                            <option value="{{ $status->id }}" @selected($selectedStatus === $status->id)>{{ $status->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('asset_status_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @if($asset->exists)
+                        <select id="assetStatus" name="asset_status_id" class="form-select @error('asset_status_id') is-invalid @enderror" required>
+                            @foreach($statuses as $status)
+                                <option value="{{ $status->id }}" @selected($selectedStatus === $status->id)>{{ $status->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('asset_status_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    @else
+                        {{-- A new asset is always registered as Active; the status is set on save. --}}
+                        <select id="assetStatus" class="form-select" disabled>
+                            <option value="{{ $activeStatusId }}" selected>{{ \App\Models\Asset::STATUS_ACTIVE }}</option>
+                        </select>
+                        <div class="form-text">New assets are registered as {{ \App\Models\Asset::STATUS_ACTIVE }} automatically.</div>
+                    @endif
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="assetDescription">Description</label>

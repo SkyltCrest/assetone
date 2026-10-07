@@ -244,7 +244,15 @@
         setTimeout(function () { if (!busy) content.innerHTML = ''; }, 600);
         showToast("Logout cancelled. You're still signed in.");
     }
-    function loGo() { logoutForm.submit(); }
+    // Submit once only: the countdown and the "Go to login now" button both end here, and a
+    // second POST would carry the CSRF token of the session the first one just destroyed.
+    var loIv = null, loSent = false;
+    function loGo() {
+        clearInterval(loIv);
+        if (loSent) return; loSent = true;
+        var b = $('loNow'); if (b) b.disabled = true;
+        logoutForm.submit();
+    }
 
     // Goodbye screen with a short countdown before returning to the login page.
     function loSuccess() {
@@ -258,9 +266,10 @@
         $('loNow').addEventListener('click', loGo); $('loNow').focus();
         var ring = $('loRingC');
         requestAnimationFrame(function () { requestAnimationFrame(function () { ring.style.strokeDashoffset = '138.2'; }); });
-        var s = 3, iv = setInterval(function () {
+        var s = 3;
+        loIv = setInterval(function () {
             s--; var el = $('loSec'); if (el) el.textContent = Math.max(s, 0);
-            if (s <= 0) { clearInterval(iv); loGo(); }
+            if (s <= 0) loGo();
         }, 1000);
     }
 

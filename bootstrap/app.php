@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -35,9 +36,23 @@ return Application::configure(basePath: dirname(__DIR__))
         // would otherwise hit the raw "419 Page Expired" screen. Send the user
         // back to the form they came from with their input preserved and a plain
         // explanation instead.
-        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+        //
+        // Laravel has already turned the TokenMismatchException into a 419
+        // HttpException by the time render callbacks run, so match on that.
+        $exceptions->render(function (HttpException $e, Request $request) {
+            if (! $e->getPrevious() instanceof TokenMismatchException) {
+                return null;
+            }
+
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Your session expired. Please reload and try again.'], 419);
+            }
+
+            // A logout that arrives with a dead token (session already ended in
+            // another tab, timed out, or the form was submitted twice) has
+            // nothing left to do: the login page is where it was heading anyway.
+            if ($request->routeIs('logout')) {
+                return redirect()->route('login');
             }
 
             return redirect()
